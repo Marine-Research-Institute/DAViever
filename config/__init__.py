@@ -25,4 +25,4 @@ __all__ = [
     'BASEMAP_CONFIGS'
 ]
 
-__version__ = '1.1.0'
+__version__ = '1.2.1'

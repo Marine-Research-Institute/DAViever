@@ -71,30 +71,11 @@
      */
     async function loadInitialLayers() {
         try {
-            console.log('🔄 Loading BBT vector layers...');
-            console.log('DEBUG: window.vectorLayers =', window.vectorLayers);
+            console.log('ℹ️ Vector layer loading disabled (GPKG functionality removed)');
 
-            // Get vector layers data from template
+            // Vector support disabled - skip loading
             if (window.vectorLayers && window.vectorLayers.length > 0) {
-                console.log('DEBUG: Found', window.vectorLayers.length, 'vector layers');
-                console.log('DEBUG: Available layers:', window.vectorLayers.map(l => l.display_name));
-
-                // Load main BBT layer (Bbt - Merged)
-                const mainLayer = window.vectorLayers.find(l => l.display_name === 'Bbt - Merged');
-                console.log('DEBUG: mainLayer =', mainLayer);
-
-                if (mainLayer) {
-                    console.log('DEBUG: Calling loadVectorLayerFast with:', mainLayer.display_name);
-                    await window.LayerManager.loadVectorLayerFast(mainLayer.display_name);
-                    console.log('✅ Main BBT layer loaded');
-                } else {
-                    console.warn('⚠️ Could not find "Bbt - Merged" layer');
-                }
-
-                // Preload other layers in background
-                window.LayerManager.preloadLayersInBackground();
-            } else {
-                console.warn('⚠️ No vector layers available. window.vectorLayers =', window.vectorLayers);
+                console.warn('⚠️ Vector layers detected in template but support is disabled');
             }
 
             // DO NOT load default EUNIS layer at startup
@@ -116,9 +97,9 @@
      */
     function populateLayerDropdowns() {
         const layerSelect = document.getElementById('layer-select');
-        const helcomSelect = document.getElementById('helcom-select');
+        const humanActivitiesSelect = document.getElementById('human-activities-select');
 
-        // Populate WMS layers
+        // Populate WMS layers (EMODnet Seabed Habitats)
         if (layerSelect && window.wmsLayers) {
             // Clear existing options except "None"
             layerSelect.innerHTML = '<option value="none">None (BBT only)</option>';
@@ -131,7 +112,7 @@
                 layerSelect.appendChild(option);
             });
 
-            console.log(`📋 Populated ${window.wmsLayers.length} WMS layers`);
+            console.log(`📋 Populated ${window.wmsLayers.length} EMODnet Seabed Habitats layers`);
 
             // Update status tooltip
             const emodnetStatusTooltip = document.getElementById('emodnet-status-tooltip');
@@ -141,26 +122,30 @@
             }
         }
 
-        // Populate HELCOM layers
-        if (helcomSelect && window.helcomLayers) {
+        // Populate Human Activities layers
+        if (humanActivitiesSelect && window.humanActivitiesLayers) {
             // Clear existing options except "None"
-            helcomSelect.innerHTML = '<option value="none">None</option>';
+            humanActivitiesSelect.innerHTML = '<option value="none">None</option>';
 
-            // Add HELCOM layers
-            window.helcomLayers.forEach(layer => {
+            // Add Human Activities layers
+            window.humanActivitiesLayers.forEach(layer => {
                 const option = document.createElement('option');
-                option.value = 'helcom:' + layer.name;
+                option.value = 'human_activities:' + layer.name;
                 option.textContent = layer.title || layer.name;
-                helcomSelect.appendChild(option);
+                // Add description as title attribute for hover tooltip
+                if (layer.description) {
+                    option.title = layer.description;
+                }
+                humanActivitiesSelect.appendChild(option);
             });
 
-            console.log(`📋 Populated ${window.helcomLayers.length} HELCOM layers`);
+            console.log(`📋 Populated ${window.humanActivitiesLayers.length} Human Activities layers`);
 
             // Update status tooltip
-            const helcomStatusTooltip = document.getElementById('helcom-status-tooltip');
-            if (helcomStatusTooltip) {
-                helcomStatusTooltip.textContent = 'No overlay';
-                helcomStatusTooltip.style.color = '#666';
+            const humanActivitiesStatusTooltip = document.getElementById('human-activities-status-tooltip');
+            if (humanActivitiesStatusTooltip) {
+                humanActivitiesStatusTooltip.textContent = 'No overlay';
+                humanActivitiesStatusTooltip.style.color = '#666';
             }
         }
     }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MARBEFES BBT Database - Flask Application Runner
+MarineSABRES DA Tool - Flask Application Runner
 A dedicated script to run the Flask application with proper configuration.
 """
 
@@ -72,7 +72,7 @@ def setup_directories():
 def main():
     """Main application runner."""
     print("=" * 60)
-    print("MARBEFES BBT Database - Flask Application Runner")
+    print("MarineSABRES DA Tool - Flask Application Runner")
     print("=" * 60)
     print()
 

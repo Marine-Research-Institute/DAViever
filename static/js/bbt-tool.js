@@ -172,8 +172,10 @@ const BBTTool = (function() {
             } else {
                 const errorText = await response.text();
 
-                // Handle 503 (service unavailable) as a warning, not an error
-                if (response.status === 503) {
+                // Handle 404 (not found) and 503 (service unavailable) as warnings, not errors
+                if (response.status === 404) {
+                    console.warn('⚠️ Vector data not available (no GPKG files):', response.status);
+                } else if (response.status === 503) {
                     console.warn('⚠️ Vector service unavailable:', response.status, response.statusText);
                 } else {
                     console.error('❌ API Error:', response.status, response.statusText, errorText);
@@ -182,8 +184,8 @@ const BBTTool = (function() {
                 throw new Error(`API Error: ${response.status}`);
             }
         } catch (error) {
-            // Only log as error if it's not a 503 (service unavailable)
-            if (!error.message.includes('503')) {
+            // Only log as error if it's not a 404 or 503 (expected when no vector data)
+            if (!error.message.includes('404') && !error.message.includes('503')) {
                 console.error('❌ Network Error loading BBT features:', error);
             }
             throw error;
@@ -1050,8 +1052,11 @@ const BBTTool = (function() {
             createBBTNavigationButtons(); // Upgrade buttons after data loads
             console.log('✅ BBT navigation initialized successfully');
         } catch (error) {
-            // Check if it's a 503 error (vector support disabled)
-            if (error.message.includes('503')) {
+            // Check if it's a 404 error (no vector data) or 503 (vector support disabled)
+            if (error.message.includes('404')) {
+                console.info('ℹ️ No vector data available - BBT navigation disabled (this is normal if no GPKG files are present)');
+                // Don't show error message for 404 - this is expected when no vector data
+            } else if (error.message.includes('503')) {
                 console.warn('⚠️ Vector support disabled - BBT navigation unavailable');
                 showBBTLoadingError('BBT features unavailable (vector support disabled)');
             } else {
@@ -1127,24 +1132,9 @@ const BBTTool = (function() {
     };
 })();
 
-// Auto-initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        // Initialize BBT data store
-        BBTTool.initializeBBTData();
-
-        // Initialize popup listeners
-        BBTTool.initializePopupListeners();
-
-        // Background load BBT features (delayed to not block initial page render)
-        setTimeout(() => BBTTool.initialize(), 2000);
-    });
-} else {
-    // DOM already loaded
-    BBTTool.initializeBBTData();
-    BBTTool.initializePopupListeners();
-    setTimeout(() => BBTTool.initialize(), 2000);
-}
+// Auto-initialization DISABLED - vector support removed
+// BBT Tool functionality disabled (GPKG files removed)
+console.log('ℹ️ BBT Tool disabled (vector support removed)');
 
 // Export to global scope for backward compatibility
 window.BBTTool = BBTTool;

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>MARBEFES BBT Database</title>
+    <title>MarineSABRES DA Tool</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -23,88 +23,52 @@
     <div id="container">
         <div id="sidebar">
             <h1>
-                <img src="{{ APPLICATION_ROOT }}/logo/marbefes_02.png" alt="MARBEFES Logo" class="logo">
-                MARBEFES BBT Database
+                MarineSABRES Demonstration Area Tool
                 <button class="help-button" onclick="showVersionInfo()" title="Version Information & Help">
                     <span class="help-icon-btn">ⓘ</span>
                 </button>
             </h1>
-            <div class="subtitle">Marine Biodiversity and Ecosystem Functioning leading to Ecosystem Services</div>
+            <div class="subtitle">Marine Systems Approaches for Biodiversity Resilience and Ecosystem Sustainability</div>
 
-            <h3>BBT Quick Navigation</h3>
-            <div class="bbt-nav-section">
-                <div class="bbt-nav-buttons" id="bbt-nav-buttons">
-                    <!-- Vertical left-aligned BBT buttons with data buttons -->
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Archipelago')" title="🗺️ Zoom to Archipelago BBT area">Archipelago</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Archipelago')" title="📊 View/Edit BBT Data">📊</button>
+            <h3>Research Sites Navigation</h3>
+            <div class="da-nav-section">
+                <div class="da-nav-buttons" id="da-nav-buttons">
+                    <!-- MarineSABRES Research Sites Navigation -->
+                    <div class="da-button-row">
+                        <button class="da-nav-btn" onclick="zoomToResearchSite('Tuscan')" title="🗺️ Zoom to Tuscan Archipelago">Tuscan Archipelago</button>
                     </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Balearic')" title="🗺️ Zoom to Balearic BBT area">Balearic</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Balearic')" title="📊 View/Edit BBT Data">📊</button>
+                    <div class="da-button-row">
+                        <button class="da-nav-btn" onclick="zoomToResearchSite('Arctic')" title="🗺️ Zoom to Arctic Northeast Atlantic">Arctic Northeast Atlantic</button>
                     </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Bay of Gdansk')" title="🗺️ Zoom to Bay of Gdansk BBT area">Bay of Gdansk</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Bay of Gdansk')" title="📊 View/Edit BBT Data">📊</button>
+                    <div class="da-button-row">
+                        <button class="da-nav-btn" onclick="zoomToResearchSite('Macaronesia')" title="🗺️ Zoom to Macaronesia">Macaronesia</button>
                     </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Gulf of Biscay')" title="🗺️ Zoom to Gulf of Biscay BBT area">Gulf of Biscay</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Gulf of Biscay')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Heraklion')" title="🗺️ Zoom to Heraklion BBT area">Heraklion</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Heraklion')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Hornsund')" title="🗺️ Zoom to Hornsund BBT area">Hornsund</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Hornsund')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Irish Sea')" title="🗺️ Zoom to Irish Sea BBT area">Irish Sea</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Irish Sea')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Kongsfjord')" title="🗺️ Zoom to Kongsfjord BBT area">Kongsfjord</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Kongsfjord')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Lithuanian coastal zone')" title="🗺️ Zoom to Lithuanian coastal zone BBT area">Lithuanian coastal zone</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Lithuanian coastal zone')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('North Sea')" title="🗺️ Zoom to North Sea BBT area">North Sea</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('North Sea')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="bbt-button-row">
-                        <button class="bbt-nav-btn" onclick="zoomToBBTArea('Sardinia')" title="🗺️ Zoom to Sardinia BBT area">Sardinia</button>
-                        <button class="bbt-data-btn" onclick="openBBTDataPopup('Sardinia')" title="📊 View/Edit BBT Data">📊</button>
-                    </div>
-                    <div class="loading-indicator" id="bbt-loading" style="color: #20B2AA; font-size: 10px; padding: 4px; text-align: center; margin-top: 8px; display: none;">
+                    <div class="loading-indicator" id="da-loading" style="color: #20B2AA; font-size: 10px; padding: 4px; text-align: center; margin-top: 8px; display: none;">
                         🔄 Loading enhanced features...
                     </div>
                 </div>
             </div>
 
-            <!-- BBT Zoom Mode Toggle -->
-            <div class="bbt-zoom-mode-section" style="margin-top: 12px; margin-bottom: 16px;">
-                <h4 style="font-size: 12px; margin-bottom: 8px; color: #333;">BBT Zoom Mode:</h4>
+            <!-- DA Zoom Mode Toggle -->
+            <div class="da-zoom-mode-section" style="margin-top: 12px; margin-bottom: 16px;">
+                <h4 style="font-size: 12px; margin-bottom: 8px; color: #333;">DA Zoom Mode:</h4>
                 <div class="zoom-mode-toggle">
-                    <button id="zoom-mode-detail" class="zoom-mode-btn active" onclick="setBBTZoomMode('detail')" title="Force zoom to specific level for optimal EUNIS layer visibility">
+                    <button id="zoom-mode-detail" class="zoom-mode-btn active" onclick="setDAZoomMode('detail')" title="Force zoom to specific level for optimal EUNIS layer visibility">
                         🔬 Full Detail
                     </button>
-                    <button id="zoom-mode-fit" class="zoom-mode-btn" onclick="setBBTZoomMode('fit')" title="Fit entire BBT area in view (may zoom out)">
+                    <button id="zoom-mode-fit" class="zoom-mode-btn" onclick="setDAZoomMode('fit')" title="Fit entire DA area in view (may zoom out)">
                         🗺️ Fit Bounds
                     </button>
                 </div>
 
                 <!-- Zoom Level Slider (for Full Detail mode) -->
                 <div id="zoom-level-slider-container" style="margin-top: 10px;">
-                    <label for="bbt-zoom-level" style="font-size: 11px; color: #555; display: block; margin-bottom: 4px;">
-                        Detail Zoom Level: <span id="bbt-zoom-level-value" style="font-weight: 600; color: #20B2AA;">11</span>
+                    <label for="da-zoom-level" style="font-size: 11px; color: #555; display: block; margin-bottom: 4px;">
+                        Detail Zoom Level: <span id="da-zoom-level-value" style="font-weight: 600; color: #20B2AA;">11</span>
                     </label>
-                    <input type="range" id="bbt-zoom-level" min="5" max="15" value="11"
+                    <input type="range" id="da-zoom-level" min="5" max="15" value="11"
                            style="width: 100%; cursor: pointer;"
-                           oninput="updateBBTZoomLevel(this.value)"
+                           oninput="updateDAZoomLevel(this.value)"
                            title="Adjust zoom level for Full Detail mode (5-15)">
                     <div style="display: flex; justify-content: space-between; font-size: 9px; color: #999; margin-top: 2px;">
                         <span>5 (Far)</span>
@@ -130,11 +94,12 @@
                 </label>
             </div>
 
-            <!-- Collapsible EMODnet Overlay Section -->
+            <!-- Collapsible EMODnet Seabed Habitats Overlay Section -->
             <div class="control-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;" onclick="toggleEmodnetPanel()">
-                    <label for="layer-select" style="margin: 0; cursor: pointer; flex: 1;">Select EMODnet Overlay</label>
-                    <span id="emodnet-status-tooltip" style="font-size: 11px; color: #666; margin: 0 8px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="">Loading...</span>
+                    <label for="layer-select" style="margin: 0; cursor: pointer; flex: 1;">EMODnet Seabed Habitats</label>
+                    <button onclick="event.stopPropagation(); showLayerInfo('emodnet', event)" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 4px; color: #20B2AA;" title="Layer information">ⓘ</button>
+                    <span id="emodnet-status-tooltip" style="font-size: 11px; color: #666; margin: 0 8px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="">Loading...</span>
                     <span id="emodnet-toggle-icon" style="font-size: 16px; color: #20B2AA;">▼</span>
                 </div>
                 <div id="emodnet-panel" style="display: block; margin-top: 0px;">
@@ -143,15 +108,16 @@
                 </div>
             </div>
 
-            <!-- Collapsible HELCOM Overlay Section -->
-            <div class="control-group">
-                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;" onclick="toggleHelcomPanel()">
-                    <label for="helcom-select" style="margin: 0; cursor: pointer; flex: 1;">HELCOM Baltic Sea Overlay</label>
-                    <span id="helcom-status-tooltip" style="font-size: 11px; color: #666; margin: 0 8px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="">No overlay</span>
-                    <span id="helcom-toggle-icon" style="font-size: 16px; color: #20B2AA;">▶</span>
+            <!-- Collapsible EMODnet Human Activities Overlay Section -->
+            <div class="control-group" style="margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;" onclick="toggleHumanActivitiesPanel()">
+                    <label for="human-activities-select" style="margin: 0; cursor: pointer; flex: 1;">EMODnet Human Activities</label>
+                    <button onclick="event.stopPropagation(); showLayerInfo('human_activities', event)" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 4px; color: #20B2AA;" title="Layer information">ⓘ</button>
+                    <span id="human-activities-status-tooltip" style="font-size: 11px; color: #666; margin: 0 8px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="">Loading...</span>
+                    <span id="human-activities-toggle-icon" style="font-size: 16px; color: #20B2AA;">▶</span>
                 </div>
-                <div id="helcom-panel" style="display: none; margin-top: 0px;">
-                    <select id="helcom-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                <div id="human-activities-panel" style="display: none; margin-top: 0px;">
+                    <select id="human-activities-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
                     </select>
                 </div>
             </div>
@@ -256,12 +222,11 @@
             <!-- Project Info moved to bottom -->
             <div class="project-info" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(32, 178, 170, 0.3);">
                 <div class="project-links">
-                    <a href="https://marbefes.eu" target="_blank" title="Visit MARBEFES Project Website">🌐 marbefes.eu</a>
-                    <a href="https://cordis.europa.eu/project/id/101060937" target="_blank" title="View on CORDIS">📋 CORDIS</a>
-                    <a href="https://marbefes.lifewatch.eu" target="_blank" title="MARBEFES Toolbox">🔧 Toolbox</a>
+                    <a href="https://cordis.europa.eu/project/id/101093169" target="_blank" title="View on CORDIS">📋 CORDIS</a>
+                    <a href="https://www.marinesabres.eu" target="_blank" title="Visit MarineSABRES Project Website">🌐 MarineSABRES</a>
                 </div>
                 <div class="grant-info">
-                    <small>Horizon Europe Grant Agreement No. 101060937</small>
+                    <small>Horizon Europe Grant Agreement No. 101093169</small>
                 </div>
             </div>
 
@@ -287,19 +252,35 @@
         </div>
     </div>
 
-    <!-- BBT Data Popup Modal -->
-    <div class="bbt-popup-overlay" id="bbt-popup-overlay">
-        <div class="bbt-popup">
-            <div class="bbt-popup-header">
-                <h2 class="bbt-popup-title" id="bbt-popup-title">BBT Data</h2>
-                <button class="bbt-popup-close" onclick="closeBBTDataPopup()">×</button>
+    <!-- DA Data Popup Modal -->
+    <div class="da-popup-overlay" id="da-popup-overlay">
+        <div class="da-popup">
+            <div class="da-popup-header">
+                <h2 class="da-popup-title" id="da-popup-title">DA Data</h2>
+                <button class="da-popup-close" onclick="closeDADataPopup()">×</button>
             </div>
-            <div class="bbt-popup-content" id="bbt-popup-content">
+            <div class="da-popup-content" id="da-popup-content">
                 <!-- Dynamic content populated by JavaScript -->
             </div>
-            <div class="bbt-popup-actions">
-                <button class="bbt-popup-btn bbt-popup-btn-cancel" onclick="closeBBTDataPopup()">Cancel</button>
-                <button class="bbt-popup-btn bbt-popup-btn-save" onclick="saveBBTData()">Save Changes</button>
+            <div class="da-popup-actions">
+                <button class="da-popup-btn da-popup-btn-cancel" onclick="closeDADataPopup()">Cancel</button>
+                <button class="da-popup-btn da-popup-btn-save" onclick="saveDAData()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layer Info Popup Modal -->
+    <div class="layer-info-popup-overlay" id="layer-info-popup-overlay" style="display: none;">
+        <div class="layer-info-popup">
+            <div class="layer-info-popup-header">
+                <h2 class="layer-info-popup-title" id="layer-info-popup-title">Layer Information</h2>
+                <button class="layer-info-popup-close" onclick="closeLayerInfoPopup()">×</button>
+            </div>
+            <div class="layer-info-popup-content" id="layer-info-popup-content">
+                <!-- Dynamic content populated by JavaScript -->
+            </div>
+            <div class="layer-info-popup-actions">
+                <button class="layer-info-popup-btn" onclick="closeLayerInfoPopup()">Close</button>
             </div>
         </div>
     </div>
@@ -309,7 +290,7 @@
         <div class="version-modal-overlay" onclick="closeVersionInfo()"></div>
         <div class="version-modal-content">
             <div class="version-modal-header">
-                <h2>About MARBEFES BBT Database</h2>
+                <h2>About MarineSABRES DA Tool</h2>
                 <button class="version-modal-close" onclick="closeVersionInfo()">&times;</button>
             </div>
             <div class="version-modal-body">
@@ -318,42 +299,61 @@
                     <table class="version-table">
                         <tr>
                             <td><strong>Version:</strong></td>
-                            <td>1.2.1</td>
+                            <td id="app-version">1.3.0-dev</td>
                         </tr>
                         <tr>
                             <td><strong>Release Date:</strong></td>
-                            <td>October 13, 2025</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Deployment:</strong></td>
-                            <td><a href="http://laguna.ku.lt:5000" target="_blank">laguna.ku.lt:5000</a></td>
+                            <td id="app-release-date">October 16, 2025</td>
                         </tr>
                         <tr>
                             <td><strong>Status:</strong></td>
+                            <td><span class="status-badge" id="version-status">Development</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Deployment:</strong></td>
+                            <td><a href="http://laguna.ku.lt:5002" target="_blank">laguna.ku.lt:5002</a></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Health:</strong></td>
                             <td><span class="status-badge" id="app-status">Checking...</span></td>
                         </tr>
                     </table>
                 </div>
 
                 <div class="version-section">
-                    <h3>What's New in v1.2.0</h3>
+                    <h3>What's New in v1.3.0-dev</h3>
                     <ul class="version-features">
-                        <li>🔒 Enhanced security with localhost binding</li>
-                        <li>⚡ 86% faster factsheet API (memory caching)</li>
-                        <li>🐍 Python 3.12+ compatibility</li>
-                        <li>📦 Updated Flask-Caching to 2.3.1</li>
-                        <li>🌐 Configured for laguna.ku.lt deployment</li>
+                        <li>🧹 Removed MARBEFES BBT factsheet functionality</li>
+                        <li>⚡ Cleaned up vector dependencies (7 core packages)</li>
+                        <li>🔒 Enhanced input validation for security</li>
+                        <li>🎯 Focused on 3 MarineSABRES research sites</li>
+                        <li>📊 Simplified to WMS-only data sources</li>
+                        <li>🏷️ Standardized project naming</li>
                     </ul>
+                    <details style="margin-top: 10px;">
+                        <summary style="cursor: pointer; color: #20B2AA; font-weight: 600;">Previous versions...</summary>
+                        <div style="margin-top: 10px; padding-left: 10px; border-left: 2px solid #20B2AA;">
+                            <h4 style="font-size: 13px; margin: 10px 0 5px 0;">v1.2.1 (January 2025)</h4>
+                            <ul style="font-size: 12px; margin: 5px 0;">
+                                <li>🔒 Enhanced security with localhost binding</li>
+                                <li>🐍 Python 3.12+ compatibility</li>
+                                <li>📦 Flask-Caching 2.3.1 update</li>
+                            </ul>
+                            <h4 style="font-size: 13px; margin: 10px 0 5px 0;">v1.2.0 (January 2025)</h4>
+                            <ul style="font-size: 12px; margin: 5px 0;">
+                                <li>⚡ 86% faster factsheet API</li>
+                                <li>📦 Framework updates (Flask 3.1.2)</li>
+                            </ul>
+                        </div>
+                    </details>
                 </div>
 
                 <div class="version-section">
-                    <h3>Data Loaded</h3>
+                    <h3>Data Sources</h3>
                     <ul class="version-features">
-                        <li>📊 <span id="factsheet-count">10</span> BBT Factsheets</li>
-                        <li>📈 <span id="bathymetry-count">11</span> Bathymetry Statistics</li>
-                        <li>🗺️ <span id="vector-count">1</span> Vector Layer (<span id="feature-count">11</span> features)</li>
-                        <li>🌊 <span id="wms-count">265</span> EMODnet WMS Layers</li>
-                        <li>🇪🇺 <span id="helcom-count">218</span> HELCOM Layers</li>
+                        <li>🗺️ 3 MarineSABRES Research Sites (Tuscan, Arctic, Macaronesia)</li>
+                        <li>🌊 265+ EMODnet Seabed Habitats WMS Layers</li>
+                        <li>🏭 48 EMODnet Human Activities WMS Layers</li>
                     </ul>
                 </div>
 
@@ -362,15 +362,14 @@
                     <ul class="version-features">
                         <li>🖱️ <strong>Pan:</strong> Click and drag the map</li>
                         <li>🔍 <strong>Zoom:</strong> Use mouse wheel or +/- buttons</li>
-                        <li>🎯 <strong>BBT Navigation:</strong> Click BBT buttons to zoom to areas</li>
-                        <li>📊 <strong>Data:</strong> Click 📊 button to view/edit BBT information</li>
+                        <li>🎯 <strong>Research Site Navigation:</strong> Click site buttons to zoom to areas</li>
                         <li>🗺️ <strong>Layers:</strong> Toggle layers in the control panel</li>
                         <li>ℹ️ <strong>Info:</strong> Click on map features for details</li>
                     </ul>
                 </div>
 
                 <div class="version-section version-footer">
-                    <p><strong>MARBEFES</strong> - Marine Biodiversity and Ecosystem Functioning leading to Ecosystem Services</p>
+                    <p><strong>MarineSABRES</strong> - Marine Systems Approaches for Biodiversity Resilience and Ecosystem Sustainability</p>
                     <p>Horizon Europe Project | <a href="https://github.com/anthropics/claude-code" target="_blank">Built with Claude Code</a></p>
                 </div>
             </div>
@@ -383,26 +382,27 @@
         window.AppConfig = window.AppConfig || {};
         window.AppConfig.API_BASE_URL = '{{ API_BASE_URL }}';
         window.AppConfig.WMS_BASE_URL = '{{ WMS_BASE_URL }}';
-        window.AppConfig.HELCOM_WMS_BASE_URL = '{{ HELCOM_WMS_BASE_URL }}';
+        window.AppConfig.HUMAN_ACTIVITIES_WMS_BASE_URL = '{{ HUMAN_ACTIVITIES_WMS_BASE_URL }}';
 
         // Inject layer data from Flask template
         window.wmsLayers = {{ layers | tojson }};
-        window.helcomLayers = {{ helcom_layers | tojson }};
+        window.humanActivitiesLayers = {{ human_activities_layers | tojson }};
         window.vectorLayers = {{ vector_layers | tojson }};
 
         console.log('📊 Template data injected:');
         console.log('  - WMS layers:', window.wmsLayers ? window.wmsLayers.length : 0);
-        console.log('  - HELCOM layers:', window.helcomLayers ? window.helcomLayers.length : 0);
+        console.log('  - Human Activities layers:', window.humanActivitiesLayers ? window.humanActivitiesLayers.length : 0);
         console.log('  - Vector layers:', window.vectorLayers ? window.vectorLayers.length : 0);
     </script>
 
     <!-- Application JavaScript Modules (loaded in correct dependency order) -->
-    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/map-init.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/layer-manager.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bbt-tool.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/ui-handlers.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/config.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/map-init.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/layer-manager.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/bbt-tool.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/research-sites.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/ui-handlers.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=2"></script>
 
     <!-- Version Info Modal Functions -->
     <script>
@@ -414,6 +414,7 @@
             fetch('/health')
                 .then(response => response.json())
                 .then(data => {
+                    // Update health status
                     const statusBadge = document.getElementById('app-status');
                     if (data.status === 'healthy') {
                         statusBadge.textContent = '✅ Operational';
@@ -421,6 +422,12 @@
                     } else {
                         statusBadge.textContent = '⚠️ ' + data.status;
                         statusBadge.className = 'status-badge status-degraded';
+                    }
+
+                    // Update version info if available
+                    if (data.version) {
+                        const versionElem = document.getElementById('app-version');
+                        if (versionElem) versionElem.textContent = data.version;
                     }
                 })
                 .catch(error => {
@@ -591,6 +598,119 @@
 
             // Initialize drag functionality
             makeLegendDraggable();
+        });
+    </script>
+
+    <!-- Layer Panel and Info Popup Functions -->
+    <script>
+        // Toggle Human Activities Panel
+        function toggleHumanActivitiesPanel() {
+            const panel = document.getElementById('human-activities-panel');
+            const icon = document.getElementById('human-activities-toggle-icon');
+
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                panel.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+
+        // Toggle EMODnet Panel (for consistency)
+        function toggleEmodnetPanel() {
+            const panel = document.getElementById('emodnet-panel');
+            const icon = document.getElementById('emodnet-toggle-icon');
+
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                panel.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+
+        // Show Layer Info Popup
+        function showLayerInfo(layerType, event) {
+            if (event) event.stopPropagation();
+
+            const overlay = document.getElementById('layer-info-popup-overlay');
+            const title = document.getElementById('layer-info-popup-title');
+            const content = document.getElementById('layer-info-popup-content');
+
+            let infoHTML = '';
+            let layerTitle = '';
+
+            if (layerType === 'emodnet') {
+                layerTitle = 'EMODnet Seabed Habitats';
+                const layerCount = window.wmsLayers ? window.wmsLayers.length : 0;
+                infoHTML = `
+                    <div style="line-height: 1.6;">
+                        <p><strong>Service:</strong> EMODnet Seabed Habitats WMS</p>
+                        <p><strong>Layers Available:</strong> ${layerCount}</p>
+                        <p><strong>Description:</strong> European Marine Observation and Data Network (EMODnet) Seabed Habitats provides comprehensive broad-scale seabed habitat maps for European waters. These layers include:</p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>EUSeaMap habitat classifications</li>
+                            <li>Substrate types and distributions</li>
+                            <li>OSPAR threatened and declining habitats</li>
+                            <li>Habitats Directive Annex I habitats</li>
+                            <li>Confidence assessments</li>
+                        </ul>
+                        <p><strong>Data Source:</strong> <a href="https://emodnet.ec.europa.eu/en/seabed-habitats" target="_blank" style="color: #20B2AA;">emodnet.ec.europa.eu</a></p>
+                        <p><strong>Usage:</strong> Select a layer from the dropdown to overlay it on the map. Click the ⓘ icon next to individual layers for detailed descriptions.</p>
+                    </div>
+                `;
+            } else if (layerType === 'human_activities') {
+                layerTitle = 'EMODnet Human Activities';
+                const layerCount = window.humanActivitiesLayers ? window.humanActivitiesLayers.length : 0;
+                infoHTML = `
+                    <div style="line-height: 1.6;">
+                        <p><strong>Service:</strong> EMODnet Human Activities WMS</p>
+                        <p><strong>Layers Available:</strong> ${layerCount}</p>
+                        <p><strong>Description:</strong> EMODnet Human Activities provides data on human pressures and activities in European marine waters. These layers include:</p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>Shipping route density and traffic patterns</li>
+                            <li>Fishing areas (FAO statistical regions)</li>
+                            <li>Offshore installations and infrastructure</li>
+                            <li>Aquaculture sites</li>
+                            <li>Dredging and extraction activities</li>
+                            <li>Submarine cables and pipelines</li>
+                        </ul>
+                        <p><strong>Data Source:</strong> <a href="https://emodnet.ec.europa.eu/en/human-activities" target="_blank" style="color: #20B2AA;">emodnet.ec.europa.eu</a></p>
+                        <p><strong>Usage:</strong> Select a layer from the dropdown to overlay human activity data on the map. These layers help visualize anthropogenic pressures on marine ecosystems.</p>
+                    </div>
+                `;
+            }
+
+            title.textContent = layerTitle;
+            content.innerHTML = infoHTML;
+            overlay.style.display = 'block';
+        }
+
+        // Close Layer Info Popup
+        function closeLayerInfoPopup() {
+            const overlay = document.getElementById('layer-info-popup-overlay');
+            overlay.style.display = 'none';
+        }
+
+        // Close popup on overlay click
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.getElementById('layer-info-popup-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) {
+                        closeLayerInfoPopup();
+                    }
+                });
+            }
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeLayerInfoPopup();
+                }
+            });
         });
     </script>
 </body>

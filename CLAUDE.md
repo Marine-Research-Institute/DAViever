@@ -4,41 +4,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Flask-based web application for visualizing EMODnet (European Marine Observation and Data Network) Seabed Habitats WMS (Web Map Service) layers with comprehensive vector layer support. The application provides an interactive map viewer that displays seabed habitat datasets from EMODnet infrastructure alongside local GPKG vector data with real-time hover tooltips and area calculations.
+**MarineSABRES Demonstration Area Tool** - A Flask-based web application for visualizing EMODnet (European Marine Observation and Data Network) Seabed Habitats and Human Activities WMS (Web Map Service) layers for three MarineSABRES research sites. The application provides an interactive map viewer that displays seabed habitat datasets and human pressure layers from EMODnet infrastructure.
+
+**Project:** Marine Systems Approaches for Biodiversity Resilience and Ecosystem Sustainability
+**Grant:** Horizon Europe Grant Agreement No. 101093169
+**Research Sites:** Tuscan Archipelago, Arctic Northeast Atlantic, Macaronesia
 
 ## Key Architecture
 
-### Single-File Application Structure
-- **app.py** - Complete Flask application with embedded HTML template
-- Self-contained web server with no external template files
-- Uses Jinja2 template rendering with `render_template_string()`
+### Application Structure
+- **app.py** - Main Flask application
+- **templates/index.html** - Interactive map interface
+- **static/js/** - Modular JavaScript (map-init, layer-manager, research-sites, etc.)
+- **config/config.py** - Configuration management
+- **src/emodnet_viewer/utils/logging_config.py** - Logging utilities
 
 ### Core Components
-1. **WMS Integration** (`app.py:12-91`)
-   - Connects to EMODnet WMS service at `https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms`
-   - Parses GetCapabilities XML responses to discover available layers
+1. **WMS Integration** (`app.py`)
+   - Connects to EMODnet Seabed Habitats WMS at `https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms`
+   - Connects to EMODnet Human Activities WMS at `https://ows.emodnet-humanactivities.eu/wms`
+   - Parses GetCapabilities XML responses to discover available layers (265+ habitat layers, 48 human activity layers)
    - Fallback to predefined layer list if service is unavailable
 
-2. **Interactive Map Interface** (`app.py:96-464`)
+2. **Interactive Map Interface** (`templates/index.html`)
    - Leaflet-based mapping interface with multiple basemap options
-   - Layer selection sidebar with predefined EMODnet habitat layers
+   - Layer selection sidebar with EMODnet habitat and human activity layers
+   - Research site navigation (Tuscan, Arctic, Macaronesia)
    - Dynamic opacity control and legend display
    - Responsive design optimized for desktop browsers
 
-3. **API Endpoints** (WMS + Vector support)
+3. **API Endpoints**
    - `/api/layers` - Returns available WMS layers as JSON
+   - `/api/all-layers` - Returns combined WMS + Human Activities layers
    - `/api/capabilities` - Proxies WMS GetCapabilities requests
-   - `/api/legend/<layer_name>` - Provides legend URLs for layers
-   - `/api/vector/layers` - Returns available vector layers with metadata
-   - `/api/vector/layer/<name>` - Returns GeoJSON for specific vector layer
-   - `/api/vector/bounds` - Returns combined bounds of all vector layers
-   - `/api/all-layers` - Returns combined WMS + vector layer information
-
-4. **Vector Layer Support** (`src/emodnet_viewer/utils/vector_loader.py`)
-   - Automatic GPKG file discovery in `data/vector/` directory
-   - GeoPandas-based data processing and coordinate system normalization
-   - Real-time hover tooltips with geodesic area calculations
-   - Leaflet GeometryUtil integration for accurate geometric measurements
+   - `/api/legend/<layer_name>` - Provides legend URLs for layers (with input validation)
+   - `/health` - Health check endpoint for monitoring
 
 ### Data Flow
 - Application queries EMODnet WMS GetCapabilities on startup
@@ -46,14 +46,19 @@ This is a Flask-based web application for visualizing EMODnet (European Marine O
 - Serves interactive interface that makes client-side WMS requests
 - Legend images are fetched directly from WMS GetLegendGraphic requests
 
-## Framework Updates (Version 1.2.0 - January 2025)
+## Version Information
 
-### Recent Improvements (v1.2.0)
-- **Security Enhancement**: Default host binding changed from `0.0.0.0` to `127.0.0.1` for development safety
-- **Python 3.12+ Compatibility**: Replaced deprecated `datetime.utcnow()` with `datetime.now(timezone.utc)`
-- **Performance Optimization**: Added factsheet data caching (86% faster API responses - from ~50ms to ~7ms)
-- **Framework Updates**: Flask-Caching updated to 2.3.1 (latest stable)
-- **Optional Dependency**: Added PyOGRIO for faster GPKG I/O operations
+**Current Version:** 1.3.0-dev (Development)
+**Production Version:** 1.3.0 (TBD)
+**Last Updated:** October 16, 2025
+
+### Recent Improvements (v1.3.0-dev)
+- **Code Cleanup**: Removed MARBEFES BBT factsheet functionality and vector data processing
+- **Dependencies**: Reduced from 13 to 7 core packages (removed geopandas, fiona, pyproj, numpy, pyogrio)
+- **Security**: Added comprehensive input validation for layer names to prevent injection attacks
+- **Project Focus**: Standardized naming and focused exclusively on 3 MarineSABRES research sites
+- **Simplification**: Simplified to WMS-only data sources for easier maintenance
+- **Version Management**: Centralized version tracking in `__version__.py`
 
 ### Previous Updates (Version 1.1.0)
 
@@ -73,22 +78,39 @@ This is a Flask-based web application for visualizing EMODnet (European Marine O
 ## Development Commands
 
 ### Running the Application
+
+**Development:**
 ```bash
+# Default (localhost only, port 5002)
 python app.py
+
+# Custom host and port
+FLASK_HOST=0.0.0.0 FLASK_RUN_PORT=5002 python app.py
 ```
-- Starts Flask development server on port 5000
-- Accessible at http://localhost:5000
-- Debug mode enabled by default
+
+**Production:**
+```bash
+# Using Gunicorn (recommended)
+gunicorn -c gunicorn.conf.py app:app
+
+# Or using systemd service
+sudo systemctl start flaskapp
+```
+
+- Development server runs on port 5002 by default
+- Accessible at http://localhost:5002 or http://laguna.ku.lt:5002
+- Debug mode enabled by default in development
+- Port can be configured via `FLASK_RUN_PORT` environment variable
 
 ### Dependencies
-This application requires (updated to latest stable versions):
+This application requires:
 - Flask 3.1.2 (web framework) - Updated for security and performance
+- Flask-Caching 2.3.1 (caching layer)
+- Flask-Limiter 3.8.0 (API rate limiting)
 - requests 2.32.3 (HTTP client for WMS requests) - Security updates
-- xml.etree.ElementTree (XML parsing, built into Python)
-- geopandas 1.1.1 (geospatial data processing) - Major version upgrade
-- Fiona 1.10.1 (GPKG file reading) - Compatibility updates
-- pyproj 3.7.1 (coordinate system transformations) - Latest features
 - Werkzeug 3.1.0+ (WSGI utilities) - Explicit security dependency
+- gunicorn 21.2.0+ (production WSGI server)
+- redis 5.0.0+ (optional: distributed caching)
 
 Install dependencies:
 ```bash
@@ -103,9 +125,11 @@ pip install -e .[dev]
 ```
 
 ### Testing Endpoints
-- Main interface: http://localhost:5000
-- WMS connectivity test: http://localhost:5000/test
-- API endpoints: http://localhost:5000/api/layers
+- Main interface: http://localhost:5001
+- Health check: http://localhost:5001/health
+- WMS connectivity test: http://localhost:5001/test
+- API endpoints: http://localhost:5001/api/layers
+- Human Activities layers: http://localhost:5001/api/all-layers
 
 ## EMODnet Integration Details
 
@@ -119,10 +143,21 @@ The application includes predefined layers from EMODnet (`app.py:17-48`):
 - `annexiMaps_all` - EU Habitats Directive Annex I habitats
 
 ### WMS Service Integration
+
+**EMODnet Seabed Habitats:**
 - Base URL: `https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms`
 - Uses WMS version 1.3.0 for capabilities, 1.1.0 for map requests
+- Provides ~265 habitat and substrate classification layers
+
+**EMODnet Human Activities:**
+- Base URL: `https://ows.emodnet-humanactivities.eu/wms`
+- Uses WMS version 1.3.0
+- Provides 48 human pressure layers (shipping routes, fishing areas, etc.)
+
+**Common Features:**
 - Supports GetMap, GetCapabilities, and GetLegendGraphic operations
 - Handles XML namespace processing for capabilities parsing
+- Layer filtering and caching for performance
 
 ### Error Handling
 - Graceful fallback to predefined layers if WMS service is unavailable
@@ -141,4 +176,11 @@ The application includes predefined layers from EMODnet (`app.py:17-48`):
 - Hover effects and transitions for interactive elements
 - Mobile-responsive design considerations
 
-When modifying this application, preserve the single-file architecture and ensure WMS integration remains functional with the EMODnet infrastructure.
+## Important Notes
+
+- **Project Scope**: This is a MarineSABRES project focused on 3 research sites, not a MARBEFES BBT project
+- **Data Sources**: Uses EMODnet WMS services only; no local vector data processing
+- **Security**: Input validation implemented on all layer name parameters to prevent injection attacks
+- **Logging**: Uses custom logging module (emodnet_viewer.utils.logging_config)
+
+When modifying this application, ensure WMS integration remains functional with the EMODnet infrastructure and maintain security best practices for user input validation.

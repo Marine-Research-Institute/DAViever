@@ -1011,58 +1011,193 @@
     }
 
     // ========================================
-    // HELCOM LAYER MANAGEMENT
+    // HUMAN ACTIVITIES LAYER MANAGEMENT
     // ========================================
 
     /**
-     * Select HELCOM layer as overlay
+     * Select Human Activities layer as overlay
      * @param {string} layerName - Layer name
      */
-    function selectHELCOMLayerAsOverlay(layerName) {
+    function selectHumanActivitiesLayerAsOverlay(layerName) {
         const config = window.AppConfig;
 
-        currentLayer = layerName;
-        currentLayerType = 'helcom-overlay';
+        console.log(`🔄 [LAYER-MGR] Loading Human Activities overlay: ${layerName}`);
+        console.log(`   - Human Activities WMS URL: ${config.HUMAN_ACTIVITIES_WMS_BASE_URL}`);
 
-        // Clear existing HELCOM layer from map and layer control
+        currentLayer = layerName;
+        currentLayerType = 'human_activities-overlay';
+
+        // Show loading indicator
+        updateStatus(`Loading ${layerName}...`, 'loading');
+
+        // Clear existing Human Activities layer from map and layer control
         if (helcomLayer) {
+            console.log('🗑️ Removing existing Human Activities layer');
             map.removeLayer(helcomLayer);
             if (window.MapInit && window.MapInit.removeOverlayFromControl) {
                 window.MapInit.removeOverlayFromControl(helcomLayer);
             }
         }
 
-        // Add HELCOM layer as overlay on top of vector layers
-        helcomLayer = L.tileLayer.wms(config.HELCOM_WMS_BASE_URL, {
+        // Create a custom pane for Human Activities layers if it doesn't exist
+        if (!map.getPane('humanActivitiesPane')) {
+            const haPane = map.createPane('humanActivitiesPane');
+            haPane.style.zIndex = 500; // Above WMS (400) but below vectors (600)
+            console.log('📐 Created humanActivitiesPane with z-index 500');
+        }
+
+        // Add Human Activities layer as overlay
+        helcomLayer = L.tileLayer.wms(config.HUMAN_ACTIVITIES_WMS_BASE_URL, {
             layers: layerName,
             format: 'image/png',
             transparent: true,
             version: '1.1.0',
             opacity: currentOpacity,
-            zIndex: 500,
-            pane: 'overlayPane'
+            pane: 'humanActivitiesPane',
+            attribution: 'EMODnet Human Activities'
+            // Note: crossOrigin removed - WMS tiles don't require CORS for display
+        });
+
+        console.log('📦 Human Activities layer created with config:', {
+            layers: layerName,
+            version: '1.1.0',
+            opacity: currentOpacity,
+            pane: 'humanActivitiesPane'
+        });
+
+        // Track tile loading
+        let tilesLoading = 0;
+        let tilesLoaded = 0;
+        let hasErrors = false;
+
+        helcomLayer.on('tileloadstart', function() {
+            tilesLoading++;
+            console.log('⏳ HA tile load started (total:', tilesLoading, ')');
+        });
+
+        helcomLayer.on('tileload', function() {
+            tilesLoaded++;
+            console.log('✅ HA tile loaded (', tilesLoaded, '/', tilesLoading, ')');
+        });
+
+        helcomLayer.on('tileerror', function(error) {
+            hasErrors = true;
+            tilesLoaded++;
+            console.error('❌ HA tile error:', error);
+            console.error('   Tile URL:', error.tile?.src || 'unknown');
+            console.error('   Error type:', error.error || error.type || 'unknown');
         });
 
         helcomLayer.addTo(map);
+        console.log('✅ Human Activities layer added to map');
+
+        // Log sample tile URL for debugging
+        const bounds = map.getBounds();
+        const size = map.getSize();
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        const sampleUrl = `${config.HUMAN_ACTIVITIES_WMS_BASE_URL}?service=WMS&version=1.1.0&request=GetMap&layers=${layerName}&bbox=${sw.lng},${sw.lat},${ne.lng},${ne.lat}&width=${size.x}&height=${size.y}&format=image/png&transparent=true&srs=EPSG:4326`;
+        console.log('🔗 Sample HA tile URL:', sampleUrl.substring(0, 150) + '...');
 
         // Add to native layer control
         if (window.MapInit && window.MapInit.addOverlayToControl) {
-            // Get friendly layer name from window.helcomLayers if available
+            // Get friendly layer name from window.humanActivitiesLayers if available
             let friendlyName = layerName;
-            if (window.helcomLayers) {
-                const layerInfo = window.helcomLayers.find(l => l.name === layerName);
+            if (window.humanActivitiesLayers) {
+                const layerInfo = window.humanActivitiesLayers.find(l => l.name === layerName);
                 if (layerInfo && layerInfo.title) {
                     friendlyName = layerInfo.title;
                 }
             }
-            window.MapInit.addOverlayToControl(helcomLayer, `🛡️ HELCOM: ${friendlyName}`);
+            window.MapInit.addOverlayToControl(helcomLayer, `🚢 Human Activities: ${friendlyName}`);
         }
 
-        // Clear legend since HELCOM might not have standard legends
+        // Clear legend since Human Activities might not have standard legends
         const legendContainer = document.getElementById('legend-container');
         if (legendContainer) {
             legendContainer.style.display = 'none';
         }
+
+        // Zoom to layer extent to ensure visibility
+        zoomToHumanActivitiesLayerExtent(layerName);
+
+        // Update status after zoom completes
+        setTimeout(() => {
+            updateStatus(`Layer loaded: ${layerName}`, '');
+        }, 1500);
+    }
+
+    /**
+     * Zoom to Human Activities layer extent
+     * @param {string} layerName - Layer name
+     */
+    function zoomToHumanActivitiesLayerExtent(layerName) {
+        const config = window.AppConfig;
+        if (!config.HUMAN_ACTIVITIES_WMS_BASE_URL) {
+            console.error('HUMAN_ACTIVITIES_WMS_BASE_URL not configured');
+            return;
+        }
+
+        const capabilitiesUrl = `${config.HUMAN_ACTIVITIES_WMS_BASE_URL}?service=WMS&version=1.3.0&request=GetCapabilities`;
+
+        fetch(capabilitiesUrl)
+            .then(response => response.text())
+            .then(data => {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data, "text/xml");
+                const layers = xmlDoc.getElementsByTagName('Layer');
+
+                for (let i = 0; i < layers.length; i++) {
+                    const nameElement = layers[i].getElementsByTagName('Name')[0];
+                    if (nameElement && nameElement.textContent === layerName) {
+                        // Look for EX_GeographicBoundingBox
+                        const boundingBox = layers[i].getElementsByTagName('EX_GeographicBoundingBox')[0];
+
+                        if (boundingBox) {
+                            const westBound = boundingBox.getElementsByTagName('westBoundLongitude')[0];
+                            const southBound = boundingBox.getElementsByTagName('southBoundLatitude')[0];
+                            const eastBound = boundingBox.getElementsByTagName('eastBoundLongitude')[0];
+                            const northBound = boundingBox.getElementsByTagName('northBoundLatitude')[0];
+
+                            if (westBound && southBound && eastBound && northBound) {
+                                const west = parseFloat(westBound.textContent);
+                                const south = parseFloat(southBound.textContent);
+                                const east = parseFloat(eastBound.textContent);
+                                const north = parseFloat(northBound.textContent);
+
+                                if (!isNaN(west) && !isNaN(south) && !isNaN(east) && !isNaN(north)) {
+                                    console.log(`📍 Layer extent: [${west}, ${south}, ${east}, ${north}]`);
+
+                                    // Check if bounds are global (very large) - don't zoom if so
+                                    const isGlobal = (east - west > 350) || (north - south > 170);
+
+                                    if (isGlobal) {
+                                        console.log('🌍 Layer has global extent, keeping current view');
+                                        // Just zoom to European waters for global layers
+                                        map.setView([54.0, 10.0], 4);
+                                    } else {
+                                        // Zoom to actual layer bounds
+                                        const bounds = [[south, west], [north, east]];
+                                        map.fitBounds(bounds, { padding: [20, 20] });
+                                        console.log('🎯 Zoomed to layer extent');
+                                    }
+                                    return;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+
+                // Fallback to European waters if no bounds found
+                console.log('⚠️ No extent found, defaulting to European waters');
+                map.setView([54.0, 10.0], 4);
+            })
+            .catch(error => {
+                console.log('Could not get Human Activities layer extent:', error);
+                // Fallback to European waters
+                map.setView([54.0, 10.0], 4);
+            });
     }
 
     // ========================================
@@ -1422,7 +1557,7 @@
 
         if ((currentLayerType === 'wms' || currentLayerType === 'wms-overlay') && wmsLayer) {
             wmsLayer.setOpacity(currentOpacity);
-        } else if (currentLayerType === 'helcom-overlay' && helcomLayer) {
+        } else if ((currentLayerType === 'helcom-overlay' || currentLayerType === 'human_activities-overlay') && helcomLayer) {
             helcomLayer.setOpacity(currentOpacity);
         } else if (currentLayerType === 'vector' && map.hasLayer(vectorLayerGroup)) {
             // Update opacity for vector layers
@@ -1471,8 +1606,8 @@
         checkLayerVisibility: checkLayerVisibility,
         updateLegend: updateLegend,
 
-        // HELCOM Layer Functions
-        selectHELCOMLayerAsOverlay: selectHELCOMLayerAsOverlay,
+        // Human Activities Layer Functions
+        selectHumanActivitiesLayerAsOverlay: selectHumanActivitiesLayerAsOverlay,
 
         // Vector Layer Functions
         loadVectorLayer: loadVectorLayer,

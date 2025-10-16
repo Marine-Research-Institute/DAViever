@@ -1,5 +1,5 @@
 """
-Configuration management for EMODnet Seabed Habitats Viewer
+Configuration management for MarineSABRES Demonstration Area Tool
 """
 import os
 import secrets
@@ -25,24 +25,18 @@ class Config:
     WMS_VERSION = os.getenv('WMS_VERSION', '1.3.0')
     WMS_TIMEOUT = int(os.getenv('WMS_TIMEOUT', '10'))
 
-    # HELCOM WMS Service Configuration
-    HELCOM_WMS_BASE_URL = os.getenv(
-        'HELCOM_WMS_BASE_URL',
-        'https://maps.helcom.fi/arcgis/services/MADS/Pressures/MapServer/WMSServer'
+    # EMODnet Human Activities WMS Service Configuration
+    HUMAN_ACTIVITIES_WMS_BASE_URL = os.getenv(
+        'HUMAN_ACTIVITIES_WMS_BASE_URL',
+        'https://ows.emodnet-humanactivities.eu/wms'
     )
-    HELCOM_WMS_VERSION = os.getenv('HELCOM_WMS_VERSION', '1.3.0')
+    HUMAN_ACTIVITIES_WMS_VERSION = os.getenv('HUMAN_ACTIVITIES_WMS_VERSION', '1.3.0')
 
     # Application settings
     MAX_LAYERS_DISPLAY = int(os.getenv('MAX_LAYERS_DISPLAY', '20'))
     DEFAULT_MAP_CENTER_LAT = float(os.getenv('DEFAULT_MAP_CENTER_LAT', '54.0'))
     DEFAULT_MAP_CENTER_LNG = float(os.getenv('DEFAULT_MAP_CENTER_LNG', '10.0'))
     DEFAULT_MAP_ZOOM = int(os.getenv('DEFAULT_MAP_ZOOM', '4'))
-
-    # Vector data settings
-    VECTOR_DATA_DIR = os.getenv('VECTOR_DATA_DIR', 'data')
-    VECTOR_SIMPLIFY_TOLERANCE = float(os.getenv('VECTOR_SIMPLIFY_TOLERANCE', '0.001'))
-    VECTOR_MAX_FEATURES = int(os.getenv('VECTOR_MAX_FEATURES', '10000'))
-    ENABLE_VECTOR_SUPPORT = os.getenv('ENABLE_VECTOR_SUPPORT', 'True').lower() == 'true'
 
     # Caching settings
     # Options: 'simple' (in-memory), 'redis', 'memcached', 'filesystem'

@@ -1,5 +1,6 @@
 """
-MARBEFES BBT Database - Marine Biodiversity and Ecosystem Functioning Database for Broad Belt Transects
+MarineSABRES Demonstration Area Tool - Marine Research Data Viewer
+Marine Systems Approaches for Biodiversity Resilience and Ecosystem Sustainability
 """
 
 # Standard library imports
@@ -8,6 +9,14 @@ import sys
 import json
 from pathlib import Path
 from xml.etree import ElementTree as ET
+
+# Version information
+try:
+    from __version__ import __version__, get_version_string
+except ImportError:
+    __version__ = "1.3.0-dev"
+    def get_version_string():
+        return f"MarineSABRES DA Tool v{__version__}"
 
 # Third-party imports
 from flask import Flask, render_template, jsonify, request, send_from_directory
@@ -23,24 +32,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "config"))
 # Local imports
 from config import get_config, EMODNET_LAYERS
 from emodnet_viewer.utils.logging_config import setup_logging, get_logger
-
-# Initialize vector support - check for geopandas availability first
-VECTOR_SUPPORT = False
-vector_loader = None
-get_vector_layer_geojson = None
-get_vector_layers_summary = None
-
-try:
-    import geopandas  # Check if geospatial deps are available
-    from emodnet_viewer.utils.vector_loader import (
-        vector_loader,
-        get_vector_layer_geojson,
-        get_vector_layers_summary,
-    )
-    VECTOR_SUPPORT = True
-except ImportError:
-    # Vector support disabled - optional dependency
-    pass
 
 # Initialize Flask app and configuration
 app = Flask(__name__)
@@ -121,63 +112,16 @@ WMS_VERSION = config.WMS_VERSION
 WMS_TIMEOUT = config.WMS_TIMEOUT
 WMS_CACHE_TIMEOUT = config.WMS_CACHE_TIMEOUT
 
-# HELCOM WMS Service Configuration
-HELCOM_WMS_BASE_URL = config.HELCOM_WMS_BASE_URL
-HELCOM_WMS_VERSION = config.HELCOM_WMS_VERSION
+# EMODnet Human Activities WMS Service Configuration
+HUMAN_ACTIVITIES_WMS_BASE_URL = config.HUMAN_ACTIVITIES_WMS_BASE_URL
+HUMAN_ACTIVITIES_WMS_VERSION = config.HUMAN_ACTIVITIES_WMS_VERSION
 
 # Layer Filtering Configuration
 CORE_EUROPEAN_LAYER_COUNT = config.CORE_EUROPEAN_LAYER_COUNT
 EUROPEAN_LAYER_TERMS = ['eusm2021', 'eusm2019', 'europe', 'substrate', 'confidence', 'annexiMaps', 'ospar']
 CARIBBEAN_EXCLUDE_TERMS = ['carib', 'caribbean']
 
-# Bathymetry Statistics Configuration
-BATHYMETRY_STATS_FILE = Path("data/bbt_bathymetry_stats.json")
-FACTSHEET_DATA_FILE = Path("data/bbt_factsheets.json")
-
-def load_bathymetry_stats():
-    """
-    Load BBT bathymetry statistics from JSON file if available.
-
-    Returns:
-        dict: Bathymetry statistics or empty dict if not available
-    """
-    if BATHYMETRY_STATS_FILE.exists():
-        try:
-            with open(BATHYMETRY_STATS_FILE) as f:
-                data = json.load(f)
-                logger.info(f"Loaded bathymetry statistics for {data['metadata'].get('bbt_count', 0)} BBT areas")
-                return data.get('statistics', {})
-        except Exception as e:
-            logger.warning(f"Failed to load bathymetry statistics: {e}")
-            return {}
-    else:
-        logger.info("Bathymetry statistics file not found - stats will not be displayed")
-        return {}
-
-def load_factsheet_data():
-    """
-    Load BBT factsheet data from JSON file if available.
-
-    Returns:
-        dict: Factsheet data or empty dict if not available
-    """
-    if FACTSHEET_DATA_FILE.exists():
-        try:
-            with open(FACTSHEET_DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                bbt_count = len(data.get('bbts', []))
-                logger.info(f"Loaded factsheet data for {bbt_count} BBT areas")
-                return data
-        except Exception as e:
-            logger.warning(f"Failed to load factsheet data: {e}")
-            return {}
-    else:
-        logger.info("Factsheet data file not found - factsheet endpoints will return 404")
-        return {}
-
-# Load data on startup for performance (cached in memory)
-BATHYMETRY_STATS = load_bathymetry_stats()
-FACTSHEET_DATA = load_factsheet_data()
+# MarineSABRES research sites configuration is handled in JavaScript (research-sites.js)
 
 
 # Layer filter functions (named for clarity and debugging)
@@ -186,8 +130,8 @@ def emodnet_layer_filter(layer):
     return ":" not in layer["name"]
 
 
-def helcom_layer_filter(layer):
-    """Filter HELCOM layers - only include layers with underscores"""
+def human_activities_layer_filter(layer):
+    """Filter EMODnet Human Activities layers - only include layers with underscores"""
     return "_" in layer["name"]
 
 
@@ -329,77 +273,68 @@ def get_available_layers():
         return EMODNET_LAYERS
 
 
-def get_helcom_layers():
-    """Fetch available layers from HELCOM WMS GetCapabilities"""
+@cache.cached(timeout=WMS_CACHE_TIMEOUT, key_prefix='human_activities_layers')
+def get_human_activities_layers():
+    """Fetch available layers from EMODnet Human Activities WMS GetCapabilities with caching"""
     try:
-        logger.info(f"Fetching HELCOM capabilities from {HELCOM_WMS_BASE_URL}")
+        logger.info(f"Fetching EMODnet Human Activities capabilities from {HUMAN_ACTIVITIES_WMS_BASE_URL}")
 
-        params = {"service": "WMS", "version": HELCOM_WMS_VERSION, "request": "GetCapabilities"}
-        response = wms_session.get(HELCOM_WMS_BASE_URL, params=params, timeout=WMS_TIMEOUT)
+        params = {"service": "WMS", "version": HUMAN_ACTIVITIES_WMS_VERSION, "request": "GetCapabilities"}
+        response = wms_session.get(HUMAN_ACTIVITIES_WMS_BASE_URL, params=params, timeout=WMS_TIMEOUT)
 
         if response.status_code == 200:
-            # Use named filter function for HELCOM layers
-            layers = parse_wms_capabilities(response.content, filter_fn=helcom_layer_filter)
+            # Use named filter function for Human Activities layers
+            layers = parse_wms_capabilities(response.content, filter_fn=human_activities_layer_filter)
 
-            logger.info(f"Successfully fetched {len(layers)} HELCOM layers")
+            logger.info(f"Successfully fetched {len(layers)} EMODnet Human Activities layers")
             return layers
         else:
-            logger.warning(f"HELCOM request failed with status {response.status_code}")
+            logger.warning(f"EMODnet Human Activities request failed with status {response.status_code}")
             return []
 
     except requests.RequestException as e:
-        logger.warning(f"Network error fetching HELCOM layers: {e}")
+        logger.warning(f"Network error fetching EMODnet Human Activities layers: {e}")
         return []
     except ET.ParseError as e:
-        logger.error(f"XML parsing error in HELCOM response: {e}")
+        logger.error(f"XML parsing error in EMODnet Human Activities response: {e}")
         return []
     except Exception as e:
-        logger.error(f"Unexpected error fetching HELCOM layers: {e}", exc_info=True)
+        logger.error(f"Unexpected error fetching EMODnet Human Activities layers: {e}", exc_info=True)
         return []
 
 
 def get_all_layers():
-    """Get both WMS, HELCOM, and vector layers combined"""
+    """Get both WMS and EMODnet Human Activities layers"""
     wms_layers = get_available_layers()
-    helcom_layers = get_helcom_layers()
+    human_activities_layers = get_human_activities_layers()
 
     combined_layers = {
         "wms_layers": wms_layers,
-        "helcom_layers": helcom_layers,
-        "vector_layers": [],
-        "vector_support": VECTOR_SUPPORT,
+        "human_activities_layers": human_activities_layers,
     }
-
-    if VECTOR_SUPPORT:
-        try:
-            vector_layers = get_vector_layers_summary()
-            combined_layers["vector_layers"] = vector_layers
-            logger.debug(f"Added {len(vector_layers)} vector layers to combined response")
-        except Exception as e:
-            logger.error(f"Error loading vector layers: {e}")
-            combined_layers["vector_support"] = False
 
     return combined_layers
 
 
-def load_vector_data_on_startup():
-    """Load vector data when the application starts"""
-    if not VECTOR_SUPPORT:
-        logger.info("Vector support disabled, skipping vector layer loading")
-        return
+# Layer name validation
+def validate_layer_name(layer_name: str) -> bool:
+    """
+    Validate layer name to prevent injection attacks
 
-    try:
-        logger.info("Loading vector data from GPKG files...")
-        vector_layers = vector_loader.load_all_vector_layers()
+    Args:
+        layer_name: Layer name to validate
 
-        logger.info(f"Loaded {len(vector_layers)} vector layers from GPKG files")
+    Returns:
+        bool: True if valid, False otherwise
+    """
+    import re
 
-        # Log layer information
-        for layer in vector_layers:
-            logger.debug(f"  - {layer.display_name} ({layer.geometry_type}, {layer.feature_count} features)")
+    if not layer_name or len(layer_name) > 255:
+        return False
 
-    except Exception as e:
-        logger.error(f"Error loading vector data: {e}", exc_info=True)
+    # Only allow alphanumeric, underscore, hyphen, colon, and dot
+    # These are the only characters used in legitimate WMS layer names
+    return bool(re.match(r'^[a-zA-Z0-9_\-:.]+$', layer_name))
 
 
 # Flask route handlers
@@ -414,12 +349,10 @@ def index():
     return render_template(
         'index.html',
         layers=all_layers["wms_layers"],
-        helcom_layers=all_layers["helcom_layers"],
-        vector_layers=all_layers["vector_layers"],
-        vector_support=all_layers["vector_support"],
-        bathymetry_stats=BATHYMETRY_STATS,
+        human_activities_layers=all_layers["human_activities_layers"],
+        vector_layers=[],
         WMS_BASE_URL=WMS_BASE_URL,
-        HELCOM_WMS_BASE_URL=HELCOM_WMS_BASE_URL,
+        HUMAN_ACTIVITIES_WMS_BASE_URL=HUMAN_ACTIVITIES_WMS_BASE_URL,
         APPLICATION_ROOT=app_root,
         API_BASE_URL=api_base_url,
     )
@@ -437,19 +370,13 @@ def health_check():
     health_status = {
         "status": "healthy",
         "timestamp": None,  # Will be set below
-        "version": "1.2.0",
+        "version": __version__,
         "components": {}
     }
 
     # Get current timestamp (using timezone-aware datetime for Python 3.12+ compatibility)
     from datetime import datetime, timezone
     health_status["timestamp"] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
-
-    # Check vector support
-    health_status["components"]["vector_support"] = {
-        "available": VECTOR_SUPPORT,
-        "status": "operational" if VECTOR_SUPPORT else "disabled"
-    }
 
     # Check WMS connectivity
     wms_healthy = False
@@ -468,21 +395,21 @@ def health_check():
         "error": wms_error
     }
 
-    # Check HELCOM WMS connectivity
-    helcom_healthy = False
-    helcom_error = None
+    # Check EMODnet Human Activities WMS connectivity
+    human_activities_healthy = False
+    human_activities_error = None
     try:
-        test_response = wms_session.get(HELCOM_WMS_BASE_URL, params={"service": "WMS", "request": "GetCapabilities"}, timeout=3)
-        helcom_healthy = test_response.status_code == 200
-        if not helcom_healthy:
-            helcom_error = f"HTTP {test_response.status_code}"
+        test_response = wms_session.get(HUMAN_ACTIVITIES_WMS_BASE_URL, params={"service": "WMS", "request": "GetCapabilities"}, timeout=3)
+        human_activities_healthy = test_response.status_code == 200
+        if not human_activities_healthy:
+            human_activities_error = f"HTTP {test_response.status_code}"
     except Exception as e:
-        helcom_error = str(e)
+        human_activities_error = str(e)
 
-    health_status["components"]["helcom_wms_service"] = {
-        "url": HELCOM_WMS_BASE_URL,
-        "status": "operational" if helcom_healthy else "degraded",
-        "error": helcom_error
+    health_status["components"]["human_activities_wms_service"] = {
+        "url": HUMAN_ACTIVITIES_WMS_BASE_URL,
+        "status": "operational" if human_activities_healthy else "degraded",
+        "error": human_activities_error
     }
 
     # Check cache
@@ -491,22 +418,8 @@ def health_check():
         "status": "operational"
     }
 
-    # Check vector data if available
-    if VECTOR_SUPPORT and vector_loader:
-        try:
-            layer_count = len(vector_loader.loaded_layers)
-            health_status["components"]["vector_data"] = {
-                "status": "operational" if layer_count > 0 else "no_data",
-                "layer_count": layer_count
-            }
-        except Exception as e:
-            health_status["components"]["vector_data"] = {
-                "status": "error",
-                "error": str(e)
-            }
-
     # Overall status determination
-    critical_services = [wms_healthy or helcom_healthy]  # At least one WMS should work
+    critical_services = [wms_healthy or human_activities_healthy]  # At least one WMS should work
     if not all(critical_services):
         health_status["status"] = "degraded"
         return jsonify(health_status), 503
@@ -533,113 +446,6 @@ def api_all_layers():
     return jsonify(get_all_layers())
 
 
-@app.route("/api/vector/layers")
-def api_vector_layers():
-    """API endpoint to get available vector layers"""
-    if not VECTOR_SUPPORT:
-        return (
-            jsonify(
-                {
-                    "error": "Vector support not available",
-                    "reason": "Missing geospatial dependencies (geopandas, fiona)",
-                }
-            ),
-            503,
-        )
-
-    try:
-        vector_layers = get_vector_layers_summary()
-        return jsonify({"layers": vector_layers, "count": len(vector_layers)})
-    except Exception as e:
-        logger.error(f"Error in api_vector_layers: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/vector/layer/<path:layer_name>")
-@limiter.limit("10 per minute")  # Stricter limit for expensive GeoJSON operations
-def api_vector_layer_geojson(layer_name):
-    """API endpoint to get GeoJSON for a specific vector layer"""
-    if not VECTOR_SUPPORT:
-        return jsonify({"error": "Vector support not available"}), 503
-
-    # Validate layer name against whitelist to prevent path traversal
-    if vector_loader and vector_loader.loaded_layers:
-        valid_layer_names = [layer.display_name for layer in vector_loader.loaded_layers]
-        if layer_name not in valid_layer_names:
-            logger.warning(f"Invalid layer name requested: {layer_name}")
-            return jsonify({"error": f"Layer '{layer_name}' not found"}), 404
-
-    try:
-        # Get optional simplification parameter
-        simplify = request.args.get("simplify", type=float)
-
-        geojson = get_vector_layer_geojson(layer_name, simplify)
-        if geojson:
-            return jsonify(geojson)
-        else:
-            return jsonify({"error": f"Layer '{layer_name}' not found"}), 404
-
-    except Exception as e:
-        logger.error(f"Error in api_vector_layer_geojson: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/vector/bounds")
-def api_vector_bounds():
-    """API endpoint to get bounds of all vector layers"""
-    if not VECTOR_SUPPORT:
-        return jsonify({"error": "Vector support not available"}), 503
-
-    try:
-        bounds_summary = vector_loader.create_bounds_summary()
-        return jsonify(bounds_summary)
-    except Exception as e:
-        logger.error(f"Error in api_vector_bounds: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/factsheets")
-def api_factsheets():
-    """API endpoint to get all BBT factsheet data (cached in memory)"""
-    try:
-        # Use cached data loaded at startup for performance
-        if not FACTSHEET_DATA:
-            return jsonify({"error": "Factsheet data not found"}), 404
-
-        return jsonify(FACTSHEET_DATA)
-    except Exception as e:
-        logger.error(f"Error in api_factsheets: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/factsheet/<bbt_name>")
-def api_factsheet(bbt_name):
-    """API endpoint to get factsheet data for a specific BBT (cached in memory)"""
-    try:
-        # Use cached data loaded at startup for performance
-        if not FACTSHEET_DATA:
-            return jsonify({"error": "Factsheet data not found"}), 404
-
-        # Normalize BBT name for matching (case-insensitive, flexible matching)
-        bbt_name_normalized = bbt_name.lower().replace("_", " ").replace("-", " ")
-
-        # Search for matching factsheet
-        for bbt in FACTSHEET_DATA.get("bbts", []):
-            factsheet_name_normalized = bbt["name"].lower().replace("_", " ").replace("-", " ")
-
-            # Check for exact match or partial match
-            if (bbt_name_normalized == factsheet_name_normalized or
-                bbt_name_normalized in factsheet_name_normalized or
-                factsheet_name_normalized in bbt_name_normalized):
-                return jsonify(bbt)
-
-        return jsonify({"error": f"No factsheet found for BBT: {bbt_name}"}), 404
-
-    except Exception as e:
-        logger.error(f"Error in api_factsheet: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route("/api/capabilities")
 @limiter.limit("30 per minute")  # Moderate limit for external WMS requests
 def api_capabilities():
@@ -657,6 +463,11 @@ def api_capabilities():
 @limiter.exempt  # Legend URLs are lightweight and can be unlimited
 def api_legend(layer_name):
     """API endpoint to get legend for a specific layer"""
+    # Validate layer name to prevent injection
+    if not validate_layer_name(layer_name):
+        logger.warning(f"Invalid layer name rejected: {layer_name}")
+        return jsonify({"error": "Invalid layer name"}), 400
+
     legend_url = (
         f"{WMS_BASE_URL}?"
         f"service=WMS&version=1.1.0&request=GetLegendGraphic&"
@@ -686,14 +497,10 @@ def test_page():
     return html
 
 
-# Initialize vector data loading when the module is imported (for WSGI servers like Gunicorn)
-# This ensures vector data is loaded even when not run directly with `python app.py`
-load_vector_data_on_startup()
-
-
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info("MARBEFES BBT Database - Marine Biodiversity and Ecosystem Functioning Database")
+    logger.info("MarineSABRES Demonstration Area Tool")
+    logger.info("Marine Systems Approaches for Biodiversity Resilience and Ecosystem Sustainability")
     logger.info("=" * 60)
     logger.info("Initializing application...")
 
@@ -705,29 +512,19 @@ if __name__ == "__main__":
     logger.info("  /health        - Health check endpoint for monitoring")
     logger.info("  /test          - Test WMS connectivity")
     logger.info("  /api/layers    - Get WMS layers (JSON)")
-    logger.info("  /api/all-layers - Get all layers (WMS + vector, JSON)")
-    logger.info("  /api/vector/layers - Get vector layers (JSON)")
-    logger.info("  /api/vector/layer/<name> - Get vector layer GeoJSON (rate limited)")
-    logger.info("  /api/vector/bounds - Get vector layers bounds")
+    logger.info("  /api/all-layers - Get all layers (WMS + Human Activities, JSON)")
     logger.info("  /api/capabilities - Get WMS capabilities (XML, rate limited)")
     logger.info("  /api/legend/<layer> - Get legend URL for a layer")
-
-    if VECTOR_SUPPORT:
-        logger.info("\nVector Support: Enabled")
-        logger.info(f"   Data directory: {Path('data/vector').absolute()}")
-    else:
-        logger.warning("\nVector Support: Disabled (missing dependencies)")
-        logger.info("   Install: pip install geopandas fiona pyproj")
 
     logger.info("\nPress Ctrl+C to stop the server")
     logger.info("-" * 60)
 
-    port = int(os.environ.get('FLASK_RUN_PORT', 5000))
-    # Default to laguna.ku.lt for deployment - use FLASK_HOST to override
-    host = os.environ.get('FLASK_HOST', '0.0.0.0')
+    port = int(os.environ.get('FLASK_RUN_PORT', 5001))
+    # Default to localhost for security (v1.2.0+) - use FLASK_HOST to override for deployment
+    host = os.environ.get('FLASK_HOST', '127.0.0.1')
 
     # Determine public URL for deployment
-    public_url = os.environ.get('PUBLIC_URL', 'http://laguna.ku.lt:5000')
+    public_url = os.environ.get('PUBLIC_URL', 'http://laguna.ku.lt:5001')
 
     logger.info(f"\nServer accessible at:")
     logger.info(f"   Local:    http://127.0.0.1:{port}")

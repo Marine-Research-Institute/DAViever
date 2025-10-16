@@ -5,17 +5,6 @@ Flask-Limiter==3.8.0  # API rate limiting for security
 requests==2.32.3
 Werkzeug>=3.1.0  # Explicit Flask dependency for security
 
-# Geospatial dependencies for GPKG support
-# Note: pandas 2.0.3 required for pyogrio 0.11.1 compatibility (pandas 2.2.3+ has dtype conversion issues)
-pandas==2.0.3  # REQUIRED: pandas 2.2.3+ incompatible with pyogrio 0.11.1
-geopandas==1.1.1
-Fiona==1.10.1
-pyproj==3.7.1
-numpy>=1.26.0,<2.0  # Compatible with pandas 2.0.3
-
-# Optional: PyOGRIO for faster GPKG reading (used in vector_loader.py)
-pyogrio>=0.9.0  # Faster alternative to Fiona for I/O operations
-
 # Production deployment dependencies
 gunicorn>=21.2.0  # WSGI HTTP server for production
 redis>=5.0.0  # Optional: Redis for distributed caching (alternative to simple cache)

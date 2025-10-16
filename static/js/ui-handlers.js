@@ -34,10 +34,10 @@ window.UIHandlers = (function() {
      */
     function setupLayerSelectHandlers() {
         const layerSelect = document.getElementById('layer-select');
-        const helcomSelect = document.getElementById('helcom-select');
+        const humanActivitiesSelect = document.getElementById('human-activities-select');
 
         if (layerSelect) {
-            // WMS overlay layer select handler
+            // WMS overlay layer select handler (EMODnet Seabed Habitats)
             layerSelect.onchange = function(e) {
                 const selectedValue = e.target.value;
                 const statusTooltip = document.getElementById('emodnet-status-tooltip');
@@ -70,23 +70,23 @@ window.UIHandlers = (function() {
             };
         }
 
-        if (helcomSelect) {
-            // HELCOM layer select handler
-            helcomSelect.onchange = function(e) {
+        if (humanActivitiesSelect) {
+            // Human Activities layer select handler
+            humanActivitiesSelect.onchange = function(e) {
                 const selectedValue = e.target.value;
-                const statusTooltip = document.getElementById('helcom-status-tooltip');
+                const statusTooltip = document.getElementById('human-activities-status-tooltip');
 
                 if (selectedValue === 'none') {
-                    // Remove HELCOM overlay
-                    window.LayerManager.clearLayers('helcom');
+                    // Remove Human Activities overlay
+                    window.LayerManager.clearLayers('human_activities');
 
                     // Update tooltip
                     if (statusTooltip) {
                         statusTooltip.textContent = 'No overlay';
                         statusTooltip.style.color = '#666';
                     }
-                } else if (selectedValue.startsWith('helcom:')) {
-                    const layerName = selectedValue.substring(7);
+                } else if (selectedValue.startsWith('human_activities:')) {
+                    const layerName = selectedValue.substring(17); // 'human_activities:'.length is 17, not 18
 
                     // Update tooltip with layer name
                     if (statusTooltip) {
@@ -97,7 +97,7 @@ window.UIHandlers = (function() {
                         statusTooltip.title = layerTitle;
                     }
 
-                    window.LayerManager.selectHELCOMLayerAsOverlay(layerName);
+                    window.LayerManager.selectHumanActivitiesLayerAsOverlay(layerName);
                 }
             };
         }
