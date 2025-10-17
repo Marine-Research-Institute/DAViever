@@ -53,9 +53,30 @@
             // 7. Setup layer dropdown options
             populateLayerDropdowns();
 
+            // 8. Initialize Area Selection tool
+            console.log('📐 Step 8: Initializing Area Selection tool...');
+            if (window.AreaSelection && typeof window.AreaSelection.init === 'function') {
+                window.AreaSelection.init(map);
+                console.log('✅ Area Selection tool initialized');
+            } else {
+                console.warn('⚠️ Area Selection module not available');
+            }
+
             // Mark initialization as complete
             initializationComplete = true;
             console.log('✅ Application initialization complete!');
+
+            // Hide loading overlay
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                setTimeout(() => {
+                    loadingOverlay.style.opacity = '0';
+                    loadingOverlay.style.transition = 'opacity 0.5s ease-out';
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 500);
+                }, 300);
+            }
 
             // Update status
             window.UIHandlers.showSuccess('Application ready', 2000);
@@ -63,6 +84,12 @@
         } catch (error) {
             console.error('❌ Application initialization failed:', error);
             window.UIHandlers.showError('Initialization failed: ' + error.message);
+
+            // Hide loading overlay even on error
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
         }
     }
 
@@ -98,6 +125,7 @@
     function populateLayerDropdowns() {
         const layerSelect = document.getElementById('layer-select');
         const humanActivitiesSelect = document.getElementById('human-activities-select');
+        const finfishSelect = document.getElementById('finfish-select');
 
         // Populate WMS layers (EMODnet Seabed Habitats)
         if (layerSelect && window.wmsLayers) {
@@ -146,6 +174,33 @@
             if (humanActivitiesStatusTooltip) {
                 humanActivitiesStatusTooltip.textContent = 'No overlay';
                 humanActivitiesStatusTooltip.style.color = '#666';
+            }
+        }
+
+        // Populate Finfish WFS layers
+        if (finfishSelect && window.finfishWfsLayers) {
+            // Clear existing options except "None"
+            finfishSelect.innerHTML = '<option value="none">None</option>';
+
+            // Add Finfish WFS layers
+            window.finfishWfsLayers.forEach(layer => {
+                const option = document.createElement('option');
+                option.value = 'finfish_wfs:' + layer.name;
+                option.textContent = layer.title || layer.name;
+                // Add description as title attribute for hover tooltip
+                if (layer.description) {
+                    option.title = layer.description;
+                }
+                finfishSelect.appendChild(option);
+            });
+
+            console.log(`📋 Populated ${window.finfishWfsLayers.length} Finfish WFS layers`);
+
+            // Update status tooltip
+            const finfishStatusTooltip = document.getElementById('finfish-status-tooltip');
+            if (finfishStatusTooltip) {
+                finfishStatusTooltip.textContent = 'No overlay';
+                finfishStatusTooltip.style.color = '#666';
             }
         }
     }

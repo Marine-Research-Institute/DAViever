@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EMODNET Human Activities - Natura 2000 & Designated Areas</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            max-width: 300px;
+            z-index: 1000;
+        }
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            color: #2c5282;
+        }
+        .layer-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: #f0f4f8;
+            border-radius: 4px;
+        }
+        .layer-item label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .layer-item input {
+            margin-right: 8px;
+        }
+        .layer-status {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .legend {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        .legend h4 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            margin-right: 8px;
+            border: 1px solid #999;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="info-panel">
+        <h3>🌍 EMODNET Human Activities</h3>
+        <p style="font-size: 12px; color: #666; margin: 0 0 10px 0;">Protected & Designated Marine Areas</p>
+
+        <div class="layer-item">
+            <label>
+                <input type="checkbox" id="natura2000-checkbox" checked>
+                <strong>Natura 2000 Sites</strong>
+            </label>
+            <div class="layer-status" id="natura2000-status">Loading...</div>
+        </div>
+
+        <div class="layer-item">
+            <label>
+                <input type="checkbox" id="designated-checkbox" checked>
+                <strong>Nationally Designated Areas</strong>
+            </label>
+            <div class="layer-status" id="designated-status">Loading...</div>
+        </div>
+
+        <div class="legend">
+            <h4>About These Layers:</h4>
+            <div style="font-size: 11px; color: #555; line-height: 1.5;">
+                <p><strong>Natura 2000:</strong> EU network of protected areas for biodiversity conservation.</p>
+                <p><strong>Nationally Designated:</strong> Marine protected areas designated by individual European countries.</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd;">
+            <p style="font-size: 10px; color: #999; margin: 0;">
+                Data source: <a href="https://emodnet.ec.europa.eu/en/human-activities" target="_blank">EMODnet Human Activities</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Initialize map centered on European waters
+        const map = L.map('map').setView([54.0, 10.0], 5);
+
+        // Add OpenStreetMap base layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // EMODNET Human Activities WMS base URL
+        const wmsBaseUrl = 'https://ows.emodnet-humanactivities.eu/wms';
+
+        // Natura 2000 layer
+        const natura2000Layer = L.tileLayer.wms(wmsBaseUrl, {
+            layers: 'natura2000',
+            format: 'image/png',
+            transparent: true,
+            version: '1.1.0',
+            opacity: 0.6,
+            attribution: 'EMODnet Human Activities'
+        });
+
+        // Nationally designated areas layer
+        const designatedLayer = L.tileLayer.wms(wmsBaseUrl, {
+            layers: 'nationallydesignatedareas',
+            format: 'image/png',
+            transparent: true,
+            version: '1.1.0',
+            opacity: 0.6,
+            attribution: 'EMODnet Human Activities'
+        });
+
+        // Add layers to map by default
+        natura2000Layer.addTo(map);
+        designatedLayer.addTo(map);
+
+        // Layer toggle functionality
+        document.getElementById('natura2000-checkbox').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                natura2000Layer.addTo(map);
+                document.getElementById('natura2000-status').textContent = 'Visible';
+            } else {
+                map.removeLayer(natura2000Layer);
+                document.getElementById('natura2000-status').textContent = 'Hidden';
+            }
+        });
+
+        document.getElementById('designated-checkbox').addEventListener('change', function(e) {
+            if (e.target.checked) {
+                designatedLayer.addTo(map);
+                document.getElementById('designated-status').textContent = 'Visible';
+            } else {
+                map.removeLayer(designatedLayer);
+                document.getElementById('designated-status').textContent = 'Hidden';
+            }
+        });
+
+        // Track tile loading for status updates
+        natura2000Layer.on('loading', function() {
+            document.getElementById('natura2000-status').textContent = 'Loading...';
+        });
+
+        natura2000Layer.on('load', function() {
+            document.getElementById('natura2000-status').textContent = 'Loaded ✓';
+        });
+
+        natura2000Layer.on('tileerror', function() {
+            document.getElementById('natura2000-status').textContent = 'Error loading';
+        });
+
+        designatedLayer.on('loading', function() {
+            document.getElementById('designated-status').textContent = 'Loading...';
+        });
+
+        designatedLayer.on('load', function() {
+            document.getElementById('designated-status').textContent = 'Loaded ✓';
+        });
+
+        designatedLayer.on('tileerror', function() {
+            document.getElementById('designated-status').textContent = 'Error loading';
+        });
+
+        // Add layer control
+        const overlayMaps = {
+            "Natura 2000 Sites": natura2000Layer,
+            "Nationally Designated Areas": designatedLayer
+        };
+
+        L.control.layers(null, overlayMaps, {
+            position: 'topleft',
+            collapsed: false
+        }).addTo(map);
+
+        console.log('🗺️ Map initialized with EMODNET Human Activities layers');
+        console.log('📍 Natura 2000 layer: natura2000');
+        console.log('📍 Designated areas layer: nationallydesignatedareas');
+    </script>
+</body>
+</html>

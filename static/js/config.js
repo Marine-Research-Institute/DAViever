@@ -9,7 +9,9 @@ if (typeof window.AppConfig === 'undefined') {
     window.AppConfig = {
         API_BASE_URL: '', // Set by template
         WMS_BASE_URL: '', // Set by template
-        HELCOM_WMS_BASE_URL: '' // Set by template
+        HELCOM_WMS_BASE_URL: '', // Set by template
+        HUMAN_ACTIVITIES_WMS_BASE_URL: '', // Set by template
+        FINFISH_WFS_BASE_URL: '' // Set by template
     };
 }
 

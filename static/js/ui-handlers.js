@@ -35,6 +35,7 @@ window.UIHandlers = (function() {
     function setupLayerSelectHandlers() {
         const layerSelect = document.getElementById('layer-select');
         const humanActivitiesSelect = document.getElementById('human-activities-select');
+        const finfishSelect = document.getElementById('finfish-select');
 
         if (layerSelect) {
             // WMS overlay layer select handler (EMODnet Seabed Habitats)
@@ -98,6 +99,38 @@ window.UIHandlers = (function() {
                     }
 
                     window.LayerManager.selectHumanActivitiesLayerAsOverlay(layerName);
+                }
+            };
+        }
+
+        if (finfishSelect) {
+            // Finfish WFS layer select handler
+            finfishSelect.onchange = function(e) {
+                const selectedValue = e.target.value;
+                const statusTooltip = document.getElementById('finfish-status-tooltip');
+
+                if (selectedValue === 'none') {
+                    // Remove Finfish WFS overlay
+                    window.LayerManager.clearLayers('finfish_wfs');
+
+                    // Update tooltip
+                    if (statusTooltip) {
+                        statusTooltip.textContent = 'No overlay';
+                        statusTooltip.style.color = '#666';
+                    }
+                } else if (selectedValue.startsWith('finfish_wfs:')) {
+                    const layerName = selectedValue.substring(12); // 'finfish_wfs:'.length is 12
+
+                    // Update tooltip with layer name
+                    if (statusTooltip) {
+                        const selectedOption = e.target.options[e.target.selectedIndex];
+                        const layerTitle = selectedOption ? selectedOption.textContent : layerName;
+                        statusTooltip.textContent = layerTitle;
+                        statusTooltip.style.color = '#20B2AA';
+                        statusTooltip.title = layerTitle;
+                    }
+
+                    window.LayerManager.selectFinfishWFSLayerAsOverlay(layerName);
                 }
             };
         }

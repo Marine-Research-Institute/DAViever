@@ -7,6 +7,7 @@
 
     <!-- External CSS Dependencies -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
     <!-- External JavaScript Dependencies -->
@@ -20,9 +21,25 @@
     <script src="https://unpkg.com/@deck.gl/aggregation-layers@^8.9.0/dist.min.js"></script>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+        <div style="text-align: center;">
+            <div class="spinner" style="border: 8px solid #f3f3f3; border-top: 8px solid #20B2AA; border-radius: 50%; width: 80px; height: 80px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <h2 style="color: #20B2AA; font-family: 'Segoe UI', Arial, sans-serif; margin: 10px 0;">Loading MarineSABRES DA Tool</h2>
+            <p style="color: #fff; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px;" id="loading-status">Initializing application...</p>
+        </div>
+    </div>
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <div id="container">
         <div id="sidebar">
             <h1>
+                <img src="{{ url_for('static', filename='img/marinesabres_logo.png') }}" alt="MarineSABRES Logo" style="height: 45px; vertical-align: middle; margin-right: 12px;">
                 MarineSABRES Demonstration Area Tool
                 <button class="help-button" onclick="showVersionInfo()" title="Version Information & Help">
                     <span class="help-icon-btn">ⓘ</span>
@@ -119,6 +136,57 @@
                 <div id="human-activities-panel" style="display: none; margin-top: 0px;">
                     <select id="human-activities-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
                     </select>
+                </div>
+            </div>
+
+            <!-- Collapsible EMODnet Finfish WFS Overlay Section -->
+            <div class="control-group" style="margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 8px;" onclick="toggleFinfishPanel()">
+                    <label for="finfish-select" style="margin: 0; cursor: pointer; flex: 1;">EMODnet Finfish (WFS)</label>
+                    <button onclick="event.stopPropagation(); showLayerInfo('finfish', event)" style="background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 4px; color: #20B2AA;" title="Layer information">ⓘ</button>
+                    <span id="finfish-status-tooltip" style="font-size: 11px; color: #666; margin: 0 8px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="">Loading...</span>
+                    <span id="finfish-toggle-icon" style="font-size: 16px; color: #20B2AA;">▶</span>
+                </div>
+                <div id="finfish-panel" style="display: none; margin-top: 0px;">
+                    <select id="finfish-select" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                    </select>
+                </div>
+            </div>
+
+            <!-- Area Selection & Analysis Section -->
+            <h3 style="margin-top: 20px;">Area Selection & Analysis</h3>
+            <div class="control-group">
+                <button id="toggle-drawing-tools" class="btn-primary" onclick="window.AreaSelection && window.AreaSelection.toggleDrawing()" style="width: 100%; padding: 12px; margin-bottom: 15px; font-size: 14px;">
+                    📐 Enable Drawing Tools
+                </button>
+
+                <div id="area-info-panel" style="display: none; margin-top: 15px; padding: 15px; background: rgba(32, 178, 170, 0.1); border-radius: 8px; border: 1px solid rgba(32, 178, 170, 0.3);">
+                    <h4 style="margin-top: 0; color: #20B2AA; font-size: 14px;">📍 Selected Area</h4>
+                    <div class="area-stats" style="margin-bottom: 15px;">
+                        <div style="margin: 8px 0; font-size: 13px;"><strong>Area:</strong> <span id="area-size" style="color: #20B2AA;">-</span></div>
+                        <div style="margin: 8px 0; font-size: 13px;"><strong>Perimeter:</strong> <span id="area-perimeter" style="color: #20B2AA;">-</span></div>
+                        <div style="margin: 8px 0; font-size: 13px;"><strong>Center:</strong> <span id="area-centroid" style="color: #20B2AA;">-</span></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                        <button onclick="window.AreaSelection && window.AreaSelection.analyzeArea()" class="btn-secondary" style="font-size: 12px; padding: 8px;">
+                            🔍 Analyze
+                        </button>
+                        <button onclick="window.AreaSelection && window.AreaSelection.exportArea('geojson')" class="btn-secondary" style="font-size: 12px; padding: 8px;">
+                            📥 GeoJSON
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button onclick="window.AreaSelection && window.AreaSelection.exportArea('csv')" class="btn-secondary" style="font-size: 12px; padding: 8px;">
+                            📊 CSV
+                        </button>
+                        <button onclick="window.AreaSelection && window.AreaSelection.clearSelection()" class="btn-secondary" style="font-size: 12px; padding: 8px;">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 11px; color: #666;">
+                        <strong>💡 Tip:</strong> Use toolbar in top-right to draw shapes. Results appear automatically!
+                    </div>
                 </div>
             </div>
 
@@ -383,17 +451,23 @@
         window.AppConfig.API_BASE_URL = '{{ API_BASE_URL }}';
         window.AppConfig.WMS_BASE_URL = '{{ WMS_BASE_URL }}';
         window.AppConfig.HUMAN_ACTIVITIES_WMS_BASE_URL = '{{ HUMAN_ACTIVITIES_WMS_BASE_URL }}';
+        window.AppConfig.FINFISH_WFS_BASE_URL = '{{ FINFISH_WFS_BASE_URL }}';
 
         // Inject layer data from Flask template
         window.wmsLayers = {{ layers | tojson }};
         window.humanActivitiesLayers = {{ human_activities_layers | tojson }};
+        window.finfishWfsLayers = {{ finfish_wfs_layers | tojson }};
         window.vectorLayers = {{ vector_layers | tojson }};
 
         console.log('📊 Template data injected:');
         console.log('  - WMS layers:', window.wmsLayers ? window.wmsLayers.length : 0);
         console.log('  - Human Activities layers:', window.humanActivitiesLayers ? window.humanActivitiesLayers.length : 0);
+        console.log('  - Finfish WFS layers:', window.finfishWfsLayers ? window.finfishWfsLayers.length : 0);
         console.log('  - Vector layers:', window.vectorLayers ? window.vectorLayers.length : 0);
     </script>
+
+    <!-- Leaflet.draw Plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <!-- Application JavaScript Modules (loaded in correct dependency order) -->
     <script src="{{ url_for('static', filename='js/config.js') }}?v=2"></script>
@@ -402,6 +476,7 @@
     <script src="{{ url_for('static', filename='js/bbt-tool.js') }}?v=2"></script>
     <script src="{{ url_for('static', filename='js/research-sites.js') }}?v=2"></script>
     <script src="{{ url_for('static', filename='js/ui-handlers.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='js/area-selection.js') }}?v=2"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}?v=2"></script>
 
     <!-- Version Info Modal Functions -->
@@ -631,6 +706,20 @@
             }
         }
 
+        // Toggle Finfish Panel
+        function toggleFinfishPanel() {
+            const panel = document.getElementById('finfish-panel');
+            const icon = document.getElementById('finfish-toggle-icon');
+
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                icon.textContent = '▼';
+            } else {
+                panel.style.display = 'none';
+                icon.textContent = '▶';
+            }
+        }
+
         // Show Layer Info Popup
         function showLayerInfo(layerType, event) {
             if (event) event.stopPropagation();
@@ -679,6 +768,25 @@
                         </ul>
                         <p><strong>Data Source:</strong> <a href="https://emodnet.ec.europa.eu/en/human-activities" target="_blank" style="color: #20B2AA;">emodnet.ec.europa.eu</a></p>
                         <p><strong>Usage:</strong> Select a layer from the dropdown to overlay human activity data on the map. These layers help visualize anthropogenic pressures on marine ecosystems.</p>
+                    </div>
+                `;
+            } else if (layerType === 'finfish') {
+                layerTitle = 'EMODnet Finfish (WFS)';
+                const layerCount = window.finfishWfsLayers ? window.finfishWfsLayers.length : 0;
+                infoHTML = `
+                    <div style="line-height: 1.6;">
+                        <p><strong>Service:</strong> EMODnet Biology WFS (Finfish Data)</p>
+                        <p><strong>Layers Available:</strong> ${layerCount}</p>
+                        <p><strong>Description:</strong> EMODnet Biology provides Web Feature Service (WFS) access to finfish occurrence and distribution data for European marine waters. These vector layers include:</p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>Finfish species occurrence data</li>
+                            <li>Distribution patterns and ranges</li>
+                            <li>Abundance and biomass information</li>
+                            <li>Temporal and spatial trends</li>
+                        </ul>
+                        <p><strong>Data Source:</strong> <a href="https://emodnet.ec.europa.eu/en/biology" target="_blank" style="color: #20B2AA;">emodnet.ec.europa.eu/biology</a></p>
+                        <p><strong>Usage:</strong> Select a layer from the dropdown to overlay finfish data as interactive vector features on the map. Click on features to view detailed information.</p>
+                        <p><strong>Note:</strong> WFS layers are rendered as vector features (points, lines, polygons) rather than raster tiles, allowing for feature-level interaction.</p>
                     </div>
                 `;
             }

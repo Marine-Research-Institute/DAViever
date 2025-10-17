@@ -32,6 +32,14 @@ class Config:
     )
     HUMAN_ACTIVITIES_WMS_VERSION = os.getenv('HUMAN_ACTIVITIES_WMS_VERSION', '1.3.0')
 
+    # EMODnet Finfish WFS Service Configuration
+    FINFISH_WFS_BASE_URL = os.getenv(
+        'FINFISH_WFS_BASE_URL',
+        'https://geo.vliz.be/geoserver/Emodnetbio/wfs'
+    )
+    FINFISH_WFS_VERSION = os.getenv('FINFISH_WFS_VERSION', '2.0.0')
+    FINFISH_WFS_TIMEOUT = int(os.getenv('FINFISH_WFS_TIMEOUT', '15'))
+
     # Application settings
     MAX_LAYERS_DISPLAY = int(os.getenv('MAX_LAYERS_DISPLAY', '20'))
     DEFAULT_MAP_CENTER_LAT = float(os.getenv('DEFAULT_MAP_CENTER_LAT', '54.0'))

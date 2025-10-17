@@ -1227,3 +1227,95 @@
 .layer-info-popup-btn:active {
     transform: translateY(0);
 }
+
+/* Area Selection Tool Styles */
+.btn-primary {
+    background: linear-gradient(135deg, #20B2AA, #17A68A);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(32, 178, 170, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #17A68A, #20B2AA);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(32, 178, 170, 0.4);
+}
+
+.btn-primary.active {
+    background: linear-gradient(135deg, #FF6B6B, #FF8787);
+    box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+}
+
+.btn-primary.active:hover {
+    background: linear-gradient(135deg, #FF8787, #FF6B6B);
+}
+
+.btn-secondary {
+    background: #fff;
+    color: #20B2AA;
+    border: 2px solid #20B2AA;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.btn-secondary:hover {
+    background: #20B2AA;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(32, 178, 170, 0.3);
+}
+
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+.area-stats {
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+#area-info-panel {
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Leaflet.draw customizations */
+.leaflet-draw-toolbar a {
+    background-color: white !important;
+    border: 2px solid #20B2AA !important;
+}
+
+.leaflet-draw-toolbar a:hover {
+    background-color: #20B2AA !important;
+}
+
+.leaflet-draw-actions a {
+    background-color: white !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+.leaflet-draw-section {
+    border-radius: 4px;
+}
+

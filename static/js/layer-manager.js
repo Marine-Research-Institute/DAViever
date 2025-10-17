@@ -1201,6 +1201,172 @@
     }
 
     // ========================================
+    // FINFISH WFS LAYER MANAGEMENT
+    // ========================================
+
+    let finfishWfsLayer = null;
+
+    /**
+     * Select Finfish WFS layer as overlay
+     * @param {string} layerName - Layer name
+     */
+    function selectFinfishWFSLayerAsOverlay(layerName) {
+        const config = window.AppConfig;
+
+        console.log(`🔄 [LAYER-MGR] Loading Finfish WFS overlay: ${layerName}`);
+        console.log(`   - Finfish WFS URL: ${config.FINFISH_WFS_BASE_URL}`);
+
+        currentLayer = layerName;
+        currentLayerType = 'finfish_wfs-overlay';
+
+        // Show loading indicator
+        updateStatus(`Loading ${layerName}...`, 'loading');
+
+        // Clear existing Finfish WFS layer from map
+        if (finfishWfsLayer) {
+            console.log('🗑️ Removing existing Finfish WFS layer');
+            map.removeLayer(finfishWfsLayer);
+            if (window.MapInit && window.MapInit.removeOverlayFromControl) {
+                window.MapInit.removeOverlayFromControl(finfishWfsLayer);
+            }
+        }
+
+        // Create a custom pane for Finfish WFS layers if it doesn't exist
+        if (!map.getPane('finfishWfsPane')) {
+            const fwPane = map.createPane('finfishWfsPane');
+            fwPane.style.zIndex = 550; // Above Human Activities (500) but below vectors (600)
+            console.log('📐 Created finfishWfsPane with z-index 550');
+        }
+
+        // Fetch WFS features as GeoJSON
+        const bounds = map.getBounds();
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+
+        // Build WFS GetFeature URL
+        const wfsParams = new URLSearchParams({
+            'service': 'WFS',
+            'version': '2.0.0',
+            'request': 'GetFeature',
+            'typeName': layerName,
+            'outputFormat': 'application/json',
+            'srsName': 'EPSG:4326',
+            'bbox': `${sw.lat},${sw.lng},${ne.lat},${ne.lng},EPSG:4326`
+        });
+
+        const wfsUrl = `${config.FINFISH_WFS_BASE_URL}?${wfsParams.toString()}`;
+        console.log('🔗 WFS GetFeature URL:', wfsUrl.substring(0, 150) + '...');
+
+        // Fetch and render GeoJSON
+        fetch(wfsUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(geojson => {
+                console.log('📊 Received WFS features:', geojson.features?.length || 0);
+
+                // Create GeoJSON layer with point styling
+                finfishWfsLayer = L.geoJSON(geojson, {
+                    pane: 'finfishWfsPane',
+                    pointToLayer: function(feature, latlng) {
+                        // Style points as circle markers
+                        return L.circleMarker(latlng, {
+                            radius: 6,
+                            fillColor: '#FF6B6B',
+                            color: '#fff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: currentOpacity,
+                            pane: 'finfishWfsPane'
+                        });
+                    },
+                    style: function(feature) {
+                        // Style polygons/lines if present
+                        return {
+                            fillColor: '#FF6B6B',
+                            color: '#fff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: currentOpacity * 0.7,
+                            pane: 'finfishWfsPane'
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        // Create popup content from feature properties
+                        if (feature.properties) {
+                            let popupContent = '<div style="max-width: 300px;">';
+                            popupContent += '<div style="font-weight: 600; color: #FF6B6B; margin-bottom: 8px;">🐟 Finfish Data</div>';
+
+                            // Display all properties
+                            Object.keys(feature.properties).forEach(key => {
+                                const value = feature.properties[key];
+                                if (value !== null && value !== undefined && value !== '') {
+                                    popupContent += `<div style="margin: 4px 0;"><strong>${key}:</strong> ${value}</div>`;
+                                }
+                            });
+
+                            popupContent += '</div>';
+                            layer.bindPopup(popupContent);
+                        }
+
+                        // Hover effects
+                        layer.on({
+                            mouseover: function(e) {
+                                if (e.target.setStyle) {
+                                    e.target.setStyle({
+                                        fillOpacity: currentOpacity + 0.2,
+                                        weight: 3
+                                    });
+                                }
+                            },
+                            mouseout: function(e) {
+                                if (e.target.setStyle) {
+                                    e.target.setStyle({
+                                        fillOpacity: currentOpacity,
+                                        weight: 2
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+
+                finfishWfsLayer.addTo(map);
+                console.log('✅ Finfish WFS layer added to map');
+
+                // Add to native layer control
+                if (window.MapInit && window.MapInit.addOverlayToControl) {
+                    // Get friendly layer name
+                    let friendlyName = layerName;
+                    if (window.finfishWfsLayers) {
+                        const layerInfo = window.finfishWfsLayers.find(l => l.name === layerName);
+                        if (layerInfo && layerInfo.title) {
+                            friendlyName = layerInfo.title;
+                        }
+                    }
+                    window.MapInit.addOverlayToControl(finfishWfsLayer, `🐟 Finfish: ${friendlyName}`);
+                }
+
+                // Update status
+                const featureCount = geojson.features?.length || 0;
+                updateStatus(`Loaded ${featureCount} finfish features`, '');
+
+                // Clear legend (WFS layers typically don't have legends)
+                const legendContainer = document.getElementById('legend-container');
+                if (legendContainer) {
+                    legendContainer.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('❌ Finfish WFS error:', error);
+                updateStatus(`Error loading finfish layer: ${error.message}`, 'error');
+            });
+    }
+
+    // ========================================
     // VECTOR LAYER MANAGEMENT
     // ========================================
 
@@ -1575,19 +1741,32 @@
     }
 
     /**
-     * Clear all layers
+     * Clear layers by type
+     * @param {string} layerType - Type of layer to clear ('all', 'wms', 'human_activities', 'finfish_wfs', 'vector')
      */
-    function clearLayers() {
-        if (wmsLayer) {
-            map.removeLayer(wmsLayer);
-            wmsLayer = null;
+    function clearLayers(layerType = 'all') {
+        if (layerType === 'all' || layerType === 'wms') {
+            if (wmsLayer) {
+                map.removeLayer(wmsLayer);
+                wmsLayer = null;
+            }
         }
-        if (helcomLayer) {
-            map.removeLayer(helcomLayer);
-            helcomLayer = null;
+        if (layerType === 'all' || layerType === 'human_activities') {
+            if (helcomLayer) {
+                map.removeLayer(helcomLayer);
+                helcomLayer = null;
+            }
         }
-        if (vectorLayerGroup) {
-            vectorLayerGroup.clearLayers();
+        if (layerType === 'all' || layerType === 'finfish_wfs') {
+            if (finfishWfsLayer) {
+                map.removeLayer(finfishWfsLayer);
+                finfishWfsLayer = null;
+            }
+        }
+        if (layerType === 'all' || layerType === 'vector') {
+            if (vectorLayerGroup) {
+                vectorLayerGroup.clearLayers();
+            }
         }
         removeTooltip();
     }
@@ -1608,6 +1787,9 @@
 
         // Human Activities Layer Functions
         selectHumanActivitiesLayerAsOverlay: selectHumanActivitiesLayerAsOverlay,
+
+        // Finfish WFS Layer Functions
+        selectFinfishWFSLayerAsOverlay: selectFinfishWFSLayerAsOverlay,
 
         // Vector Layer Functions
         loadVectorLayer: loadVectorLayer,
