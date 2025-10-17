@@ -1,0 +1,69 @@
+[Unit]
+Description=MarineSABRES Demonstration Area Tool (Gunicorn)
+Documentation=https://marinesabres.eu
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=razinka
+Group=razinka
+WorkingDirectory=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer
+Environment=PATH=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/venv/bin
+Environment=VIRTUAL_ENV=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/venv
+Environment=FLASK_APP=app.py
+Environment=FLASK_ENV=production
+Environment=FLASK_DEBUG=0
+Environment=APPLICATION_ROOT=/DA
+Environment=WMS_BASE_URL=https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms
+Environment=HUMAN_ACTIVITIES_WMS_BASE_URL=https://ows.emodnet-humanactivities.eu/wms
+Environment=FINFISH_WFS_BASE_URL=https://geo.vliz.be/geoserver/Emodnetbio/wfs
+Environment=WMS_TIMEOUT=30
+Environment=LOG_LEVEL=INFO
+Environment=LOG_FILE=logs/app.log
+Environment=PORT=5002
+Environment=SECRET_KEY=change-this-in-production-to-secure-key
+
+# Pre-start dependency check
+ExecStartPre=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/venv/bin/python -c "import flask, requests, gunicorn; print('Dependencies OK')"
+
+# Start Gunicorn with configuration file
+ExecStart=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/venv/bin/gunicorn \
+    --config gunicorn.conf.py \
+    --pid /tmp/marinesabres-da.pid \
+    app:app
+
+# Reload and stop commands
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+
+# Process management
+KillMode=mixed
+TimeoutStartSec=60
+TimeoutStopSec=30
+RestartSec=10
+Restart=on-failure
+RestartPreventExitStatus=1
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/logs
+ReadWritePaths=/tmp
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=marinesabres-da
+
+[Install]
+WantedBy=multi-user.target

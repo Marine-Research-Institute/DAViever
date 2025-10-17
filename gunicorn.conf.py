@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Gunicorn configuration for MARBEFES BBT Database
-Deployed at: http://laguna.ku.lt/BBTS/
+Gunicorn configuration for MarineSABRES Demonstration Area Tool
+Deployed at: http://laguna.ku.lt/DA/
 
 Optimized configuration with:
 - Environment-based scaling (auto-scaled based on CPU cores)
 - Production security settings
-- Performance tuning for WMS/HELCOM requests (120s timeout)
-- 2-tier caching for vector layers
+- Performance tuning for EMODnet WMS requests (120s timeout)
 - Connection pooling for WMS services
+- Subpath deployment support (/DA/)
 """
 
 import os
 import multiprocessing
 
 # Server socket - bind to localhost only (nginx reverse proxy handles external access)
-bind = f"127.0.0.1:{os.getenv('PORT', '5000')}"
+bind = f"127.0.0.1:{os.getenv('PORT', '5002')}"
 backlog = 2048
 
 # Worker processes - optimized for I/O bound WMS requests
@@ -39,7 +39,7 @@ loglevel = os.getenv('LOG_LEVEL', 'info').lower()
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
 # Process naming
-proc_name = 'marbefes-bbt-database'
+proc_name = 'marinesabres-da-tool'
 
 # Server mechanics
 preload_app = True
@@ -48,6 +48,7 @@ daemon = False
 # Environment variables passed to workers
 raw_env = [
     'FLASK_ENV=production',
+    'APPLICATION_ROOT=/DA',
 ]
 
 # Security - limit request sizes
@@ -61,7 +62,7 @@ limit_request_field_size = 8190
 
 def when_ready(server):
     """Called just after the server is started."""
-    server.log.info("MARBEFES BBT Database server is ready. Listening on %s", bind)
+    server.log.info("MarineSABRES DA Tool server is ready. Listening on %s", bind)
 
 def worker_int(worker):
     """Called just after a worker has been interrupted by SIGINT"""
