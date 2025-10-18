@@ -997,6 +997,148 @@ def check_layer_overlap(user_bounds, layer_bounds):
     return bbox_intersects(user_bounds, layer_bbox)
 
 
+@app.route("/api/extract-layer-values", methods=['POST'])
+@limiter.limit("30 per minute")
+def api_extract_layer_values():
+    """
+    Extract values from a WMS layer within a user-drawn area using GetFeatureInfo
+
+    Request Body:
+    {
+        "layer_name": "layer_name",
+        "geometry": {GeoJSON geometry},
+        "sample_points": int (optional, default 10 - number of points to sample)
+    }
+
+    Returns:
+    {
+        "layer_name": "layer_name",
+        "values": [
+            {
+                "lat": float,
+                "lon": float,
+                "properties": {...}  # Layer attributes at this point
+            },
+            ...
+        ],
+        "sample_count": int,
+        "timestamp": ISO datetime string
+    }
+    """
+    try:
+        data = request.json
+
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        layer_name = data.get('layer_name')
+        geometry = data.get('geometry')
+        sample_points = data.get('sample_points', 10)
+
+        if not layer_name:
+            return jsonify({"error": "layer_name is required"}), 400
+
+        if not geometry:
+            return jsonify({"error": "geometry is required"}), 400
+
+        # Validate layer name
+        if not validate_layer_name(layer_name):
+            return jsonify({"error": "Invalid layer name"}), 400
+
+        # Validate geometry
+        if not validate_geojson_geometry(geometry):
+            return jsonify({"error": "Invalid GeoJSON geometry"}), 400
+
+        # Calculate area bounds
+        try:
+            stats = calculate_area_statistics(geometry)
+            bounds = stats['bounds']  # [minX, minY, maxX, maxY]
+            centroid = stats['centroid']  # [lon, lat]
+        except Exception as e:
+            logger.error(f"Error calculating geometry stats: {e}", exc_info=True)
+            return jsonify({"error": f"Failed to process geometry: {str(e)}"}), 500
+
+        # Generate sample points within the area
+        import random
+        sample_coords = []
+
+        minX, minY, maxX, maxY = bounds
+
+        # Generate random points within bounds
+        for _ in range(sample_points):
+            lon = random.uniform(minX, maxX)
+            lat = random.uniform(minY, maxY)
+            sample_coords.append((lon, lat))
+
+        # Always include the centroid
+        sample_coords.append(tuple(centroid))
+
+        # Query WMS GetFeatureInfo for each sample point
+        wms_url = HUMAN_ACTIVITIES_WMS_BASE_URL
+        extracted_values = []
+
+        for lon, lat in sample_coords:
+            try:
+                # Build GetFeatureInfo request
+                params = {
+                    'SERVICE': 'WMS',
+                    'VERSION': '1.3.0',
+                    'REQUEST': 'GetFeatureInfo',
+                    'LAYERS': layer_name,
+                    'QUERY_LAYERS': layer_name,
+                    'INFO_FORMAT': 'application/json',
+                    'CRS': 'EPSG:4326',
+                    'BBOX': f"{lat-0.01},{lon-0.01},{lat+0.01},{lon+0.01}",  # Small bbox around point
+                    'WIDTH': '101',
+                    'HEIGHT': '101',
+                    'I': '50',  # Center pixel X
+                    'J': '50'   # Center pixel Y
+                }
+
+                response = requests.get(wms_url, params=params, timeout=5)
+
+                if response.ok:
+                    try:
+                        feature_info = response.json()
+
+                        # Extract features if available
+                        if 'features' in feature_info and len(feature_info['features']) > 0:
+                            properties = feature_info['features'][0].get('properties', {})
+
+                            extracted_values.append({
+                                "lat": lat,
+                                "lon": lon,
+                                "properties": properties
+                            })
+                    except:
+                        # Not JSON or invalid response
+                        pass
+
+            except Exception as e:
+                logger.debug(f"Error querying point ({lon}, {lat}): {e}")
+                continue
+
+        # Get current timestamp
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+        response_data = {
+            "layer_name": layer_name,
+            "values": extracted_values,
+            "sample_count": len(extracted_values),
+            "total_samples": len(sample_coords),
+            "timestamp": timestamp
+        }
+
+        logger.info(f"Layer value extraction completed: {len(extracted_values)}/{len(sample_coords)} samples from {layer_name}")
+
+        return jsonify(response_data), 200
+
+    except Exception as e:
+        logger.error(f"Layer value extraction error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/check-layer-overlap", methods=['POST'])
 @limiter.limit("30 per minute")
 def api_check_layer_overlap():
@@ -1135,6 +1277,7 @@ if __name__ == "__main__":
     logger.info("  /api/capabilities - Get WMS capabilities (XML, rate limited)")
     logger.info("  /api/legend/<layer> - Get legend URL for a layer")
     logger.info("  /api/check-layer-overlap - Check layer overlap with drawn area (POST, JSON)")
+    logger.info("  /api/extract-layer-values - Extract values from WMS layer in area (POST, JSON)")
 
     logger.info("\nPress Ctrl+C to stop the server")
     logger.info("-" * 60)

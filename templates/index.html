@@ -184,13 +184,32 @@
                             🗑️ Clear
                         </button>
                     </div>
-                    <div style="margin-top: 8px;">
-                        <button id="show-layer-overlap-btn" onclick="window.AreaSelection && window.AreaSelection.showLayerOverlapResults()" class="btn-primary" style="width: 100%; font-size: 12px; padding: 10px; display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            📊 View Overlapping Layers
-                        </button>
-                    </div>
                     <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; font-size: 11px; color: #666;">
                         <strong>💡 Tip:</strong> Use toolbar in top-right to draw shapes. Results appear automatically!
+                    </div>
+                </div>
+
+                <!-- Layer Overlap Results Panel -->
+                <div id="layer-overlap-panel" style="display: none; margin-top: 15px; padding: 15px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="margin: 0; color: #667eea; font-size: 14px;">🌊 Overlapping Layers</h4>
+                        <button onclick="window.AreaSelection && window.AreaSelection.hideLayerOverlapPanel()" style="background: none; border: none; color: #667eea; cursor: pointer; font-size: 18px; padding: 0;">×</button>
+                    </div>
+
+                    <div style="margin-bottom: 10px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                        <div style="font-size: 12px; color: #aaa;">
+                            <strong id="overlap-count-display" style="color: #667eea;">0</strong> layers overlap with selected area
+                        </div>
+                    </div>
+
+                    <div id="overlap-results-container" style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+                        <!-- Results will be populated here by JavaScript -->
+                    </div>
+
+                    <div style="margin-top: 10px; text-align: center;">
+                        <button onclick="window.AreaSelection && window.AreaSelection.exportLayerOverlapResults()" class="btn-secondary" style="width: 100%; font-size: 11px; padding: 8px;">
+                            💾 Export Results as CSV
+                        </button>
                     </div>
                 </div>
             </div>

@@ -20,6 +20,7 @@
     let currentAnalysisData = null;
     let currentLayerOverlapData = null;
     let isDrawingEnabled = false;
+    let overlappingLayersGroup = null; // Layer group for displaying overlapping layers
 
     /**
      * Initialize the area selection module
@@ -42,6 +43,10 @@
         // Initialize drawn items layer
         drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
+
+        // Initialize overlapping layers group
+        overlappingLayersGroup = new L.FeatureGroup();
+        map.addLayer(overlappingLayersGroup);
 
         // Create draw control (but don't add to map yet)
         createDrawControl();
@@ -401,8 +406,8 @@
                 });
             }
 
-            // Update the UI to show overlap button
-            updateLayerOverlapButton(data.total_overlapping);
+            // Display the results in the panel
+            displayLayerOverlapResults(data);
 
         } catch (error) {
             console.error('❌ Layer overlap check error:', error);
@@ -416,17 +421,377 @@
     }
 
     /**
-     * Update layer overlap button visibility
+     * Display layer overlap results in the panel
      */
-    function updateLayerOverlapButton(count) {
-        const btn = document.getElementById('show-layer-overlap-btn');
-        if (btn) {
-            if (count > 0) {
-                btn.style.display = 'inline-block';
-                btn.textContent = `📊 View ${count} Overlapping Layer(s)`;
-            } else {
-                btn.style.display = 'none';
+    function displayLayerOverlapResults(data) {
+        if (!data) {
+            console.error('No overlap data to display');
+            return;
+        }
+
+        const panel = document.getElementById('layer-overlap-panel');
+        const countDisplay = document.getElementById('overlap-count-display');
+        const container = document.getElementById('overlap-results-container');
+
+        if (!panel || !countDisplay || !container) {
+            console.error('Layer overlap panel elements not found');
+            return;
+        }
+
+        // Update count display
+        countDisplay.textContent = data.total_overlapping;
+
+        // Clear previous results
+        container.innerHTML = '';
+
+        if (data.overlapping_layers && data.overlapping_layers.length > 0) {
+            // Create list of results
+            data.overlapping_layers.forEach((layer, idx) => {
+                const layerDiv = document.createElement('div');
+                layerDiv.style.cssText = 'margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; border-left: 3px solid #667eea;';
+
+                // Checkbox and layer name container
+                const headerDiv = document.createElement('div');
+                headerDiv.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;';
+
+                // Left side: checkbox + name
+                const leftDiv = document.createElement('div');
+                leftDiv.style.cssText = 'display: flex; align-items: center; gap: 8px; flex: 1;';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `layer-checkbox-${idx}`;
+                checkbox.style.cssText = 'cursor: pointer; width: 14px; height: 14px;';
+                checkbox.addEventListener('change', function() {
+                    toggleLayerBoundary(layer, this.checked);
+                });
+
+                const label = document.createElement('label');
+                label.htmlFor = `layer-checkbox-${idx}`;
+                label.style.cssText = 'color: #667eea; font-size: 12px; cursor: pointer; font-weight: 600;';
+                label.textContent = `${idx + 1}. ${layer.name}`;
+
+                leftDiv.appendChild(checkbox);
+                leftDiv.appendChild(label);
+
+                // Right side: overlap percentage
+                const percentSpan = document.createElement('span');
+                percentSpan.style.cssText = 'color: #aaa; font-size: 11px; background: rgba(102, 126, 234, 0.2); padding: 2px 6px; border-radius: 3px;';
+                percentSpan.textContent = `${layer.overlap_percentage}%`;
+
+                headerDiv.appendChild(leftDiv);
+                headerDiv.appendChild(percentSpan);
+
+                // Layer description (truncated)
+                const descDiv = document.createElement('div');
+                descDiv.style.cssText = 'font-size: 10px; color: #888; margin-top: 5px; margin-left: 22px; line-height: 1.3;';
+                if (layer.description) {
+                    const shortDesc = layer.description.substring(0, 120);
+                    descDiv.textContent = shortDesc + (layer.description.length > 120 ? '...' : '');
+                } else {
+                    descDiv.textContent = 'No description available';
+                    descDiv.style.fontStyle = 'italic';
+                }
+
+                layerDiv.appendChild(headerDiv);
+                layerDiv.appendChild(descDiv);
+                container.appendChild(layerDiv);
+            });
+
+            // Show the panel
+            panel.style.display = 'block';
+
+        } else {
+            // No overlapping layers
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #888; font-size: 12px;"><em>No overlapping layers found in this area</em></div>';
+            panel.style.display = 'block';
+        }
+
+        console.log(`✅ Displayed ${data.total_overlapping} overlapping layers in panel`);
+    }
+
+    /**
+     * Toggle layer boundary display on map
+     * @param {Object} layer - Layer information
+     * @param {boolean} show - Whether to show or hide the layer
+     */
+    async function toggleLayerBoundary(layer, show) {
+        if (!map || !overlappingLayersGroup) {
+            console.error('Map or layer group not initialized');
+            return;
+        }
+
+        const layerKey = `boundary_${layer.name}`;
+
+        if (show) {
+            // Show layer boundary on map
+            try {
+                console.log(`🗺️ Loading boundary for layer: ${layer.name}`);
+
+                const statusEl = document.getElementById('status');
+                if (statusEl) {
+                    statusEl.textContent = `Loading ${layer.name}...`;
+                    statusEl.className = 'status loading';
+                }
+
+                // Create WMS layer for the Human Activities layer
+                const wmsUrl = window.AppConfig.HUMAN_ACTIVITIES_WMS_BASE_URL || 'https://ows.emodnet-humanactivities.eu/wms';
+
+                const wmsLayer = L.tileLayer.wms(wmsUrl, {
+                    layers: layer.name,
+                    format: 'image/png',
+                    transparent: true,
+                    version: '1.3.0',
+                    opacity: 0.7,
+                    attribution: '© EMODnet Human Activities'
+                });
+
+                // Store reference to the layer for later removal
+                wmsLayer._layerKey = layerKey;
+
+                // Add to overlapping layers group
+                overlappingLayersGroup.addLayer(wmsLayer);
+
+                console.log(`✅ Layer boundary displayed: ${layer.name}`);
+
+                // Extract values from the layer
+                await extractLayerValues(layer);
+
+                if (statusEl) {
+                    statusEl.textContent = `Displayed ${layer.name}`;
+                    statusEl.className = 'status';
+                }
+
+            } catch (error) {
+                console.error(`❌ Error loading layer boundary for ${layer.name}:`, error);
+
+                const statusEl = document.getElementById('status');
+                if (statusEl) {
+                    statusEl.textContent = `Error loading ${layer.name}`;
+                    statusEl.className = 'status error';
+                }
             }
+
+        } else {
+            // Hide layer boundary
+            console.log(`🗑️ Removing boundary for layer: ${layer.name}`);
+
+            // Find and remove the layer from the group
+            overlappingLayersGroup.eachLayer(function(mapLayer) {
+                if (mapLayer._layerKey === layerKey) {
+                    overlappingLayersGroup.removeLayer(mapLayer);
+                    console.log(`✅ Layer boundary removed: ${layer.name}`);
+                }
+            });
+
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = `Removed ${layer.name}`;
+                statusEl.className = 'status';
+            }
+        }
+    }
+
+    /**
+     * Extract values from a WMS layer within the selected area
+     * @param {Object} layer - Layer information
+     */
+    async function extractLayerValues(layer) {
+        if (!selectedArea) {
+            console.error('No area selected for value extraction');
+            return;
+        }
+
+        try {
+            console.log(`🔍 Extracting values from layer: ${layer.name}`);
+
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = `Extracting values from ${layer.name}...`;
+                statusEl.className = 'status loading';
+            }
+
+            // Call backend API to extract values
+            const response = await fetch(`${window.AppConfig.API_BASE_URL}/extract-layer-values`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    layer_name: layer.name,
+                    geometry: selectedArea.geometry,
+                    sample_points: 15
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Value extraction failed');
+            }
+
+            const data = await response.json();
+
+            // Display the extracted values
+            displayExtractedValues(layer, data);
+
+            console.log(`✅ Extracted ${data.sample_count} values from ${layer.name}`, data);
+
+            if (statusEl) {
+                statusEl.textContent = `Extracted ${data.sample_count} values from ${layer.name}`;
+                statusEl.className = 'status';
+            }
+
+        } catch (error) {
+            console.error(`❌ Value extraction error for ${layer.name}:`, error);
+
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = `Error extracting values: ${error.message}`;
+                statusEl.className = 'status error';
+            }
+        }
+    }
+
+    /**
+     * Display extracted values in the layer item
+     * @param {Object} layer - Layer information
+     * @param {Object} data - Extracted values data
+     */
+    function displayExtractedValues(layer, data) {
+        // Find the layer div to add extracted values
+        const layerDivs = document.querySelectorAll('#overlap-results-container > div');
+
+        for (let layerDiv of layerDivs) {
+            const label = layerDiv.querySelector('label');
+            if (label && label.textContent.includes(layer.name)) {
+                // Check if values section already exists
+                let valuesDiv = layerDiv.querySelector('.extracted-values');
+
+                if (!valuesDiv) {
+                    // Create values section
+                    valuesDiv = document.createElement('div');
+                    valuesDiv.className = 'extracted-values';
+                    valuesDiv.style.cssText = 'margin-top: 8px; margin-left: 22px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 3px; font-size: 10px;';
+                    layerDiv.appendChild(valuesDiv);
+                }
+
+                // Build values content
+                let valuesHTML = `<div style="color: #667eea; font-weight: 600; margin-bottom: 5px;">📊 Extracted Values (${data.sample_count} samples):</div>`;
+
+                if (data.values && data.values.length > 0) {
+                    // Collect unique properties from all samples
+                    const allProperties = new Set();
+                    data.values.forEach(sample => {
+                        Object.keys(sample.properties || {}).forEach(key => allProperties.add(key));
+                    });
+
+                    if (allProperties.size > 0) {
+                        // Show first 5 properties
+                        const propertyList = Array.from(allProperties).slice(0, 5);
+
+                        valuesHTML += '<div style="margin-top: 5px;">';
+                        propertyList.forEach(prop => {
+                            // Get unique values for this property
+                            const values = new Set();
+                            data.values.forEach(sample => {
+                                const val = sample.properties?.[prop];
+                                if (val !== null && val !== undefined) {
+                                    values.add(val);
+                                }
+                            });
+
+                            const valueStr = Array.from(values).slice(0, 3).join(', ');
+                            const moreCount = values.size > 3 ? ` (+${values.size - 3} more)` : '';
+
+                            valuesHTML += `<div style="margin-bottom: 3px; line-height: 1.4;">
+                                <span style="color: #aaa;">${prop}:</span>
+                                <span style="color: #ccc;">${valueStr}${moreCount}</span>
+                            </div>`;
+                        });
+                        valuesHTML += '</div>';
+
+                        if (allProperties.size > 5) {
+                            valuesHTML += `<div style="margin-top: 5px; color: #888; font-style: italic;">...and ${allProperties.size - 5} more properties</div>`;
+                        }
+                    } else {
+                        valuesHTML += '<div style="color: #888; font-style: italic; margin-top: 5px;">No attribute data available</div>';
+                    }
+                } else {
+                    valuesHTML += '<div style="color: #888; font-style: italic; margin-top: 5px;">No values found in selected area</div>';
+                }
+
+                valuesDiv.innerHTML = valuesHTML;
+                break;
+            }
+        }
+    }
+
+    /**
+     * Hide layer overlap panel
+     */
+    function hideLayerOverlapPanel() {
+        const panel = document.getElementById('layer-overlap-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+
+        // Also clear all displayed layer boundaries
+        clearOverlappingLayers();
+    }
+
+    /**
+     * Clear all overlapping layer boundaries from map
+     */
+    function clearOverlappingLayers() {
+        if (overlappingLayersGroup) {
+            overlappingLayersGroup.clearLayers();
+            console.log('🗑️ Cleared all overlapping layer boundaries');
+        }
+    }
+
+    /**
+     * Export layer overlap results as CSV
+     */
+    function exportLayerOverlapResults() {
+        if (!currentLayerOverlapData || !currentLayerOverlapData.overlapping_layers) {
+            alert('No layer overlap data available to export.');
+            return;
+        }
+
+        try {
+            // Create CSV content
+            let csv = 'Layer Name,Overlap Percentage,Description\n';
+
+            currentLayerOverlapData.overlapping_layers.forEach(layer => {
+                const name = layer.name.replace(/"/g, '""'); // Escape quotes
+                const percent = layer.overlap_percentage;
+                const desc = (layer.description || '').replace(/"/g, '""').replace(/\n/g, ' ');
+                csv += `"${name}",${percent},"${desc}"\n`;
+            });
+
+            // Create and download file
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `layer_overlap_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            console.log('✅ Layer overlap results exported to CSV');
+
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = 'Layer overlap results exported';
+                statusEl.className = 'status';
+            }
+
+        } catch (error) {
+            console.error('❌ Export error:', error);
+            alert('Error exporting results: ' + error.message);
         }
     }
 
@@ -511,7 +876,7 @@
 
         // Create detailed results text
         let results = '🌊 EMODnet Human Activities Layer Overlap Results\n';
-        results += '=' . repeat(50) + '\n\n';
+        results += '='.repeat(50) + '\n\n';
 
         results += `Total Layers Checked: ${currentLayerOverlapData.total_checked}\n`;
         results += `Overlapping Layers: ${currentLayerOverlapData.total_overlapping}\n\n`;
@@ -628,9 +993,7 @@
         currentLayerOverlapData = null;
 
         hideAreaInfo();
-
-        // Hide layer overlap button
-        updateLayerOverlapButton(0);
+        hideLayerOverlapPanel();
 
         const statusEl = document.getElementById('status');
         if (statusEl) {
@@ -666,7 +1029,9 @@
         showAnalysisResults,
         showLayerOverlapResults,
         exportArea,
+        exportLayerOverlapResults,
         clearSelection,
+        hideLayerOverlapPanel,
         getSelectedArea,
         getAnalysisData,
         getLayerOverlapData: () => currentLayerOverlapData,
