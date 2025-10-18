@@ -50,7 +50,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Current Version:** 1.3.0-dev (Development)
 **Production Version:** 1.3.0 (TBD)
-**Last Updated:** October 16, 2025
+**Last Updated:** October 18, 2025
 
 ### Recent Improvements (v1.3.0-dev)
 - **Code Cleanup**: Removed MARBEFES BBT factsheet functionality and vector data processing
@@ -59,21 +59,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Project Focus**: Standardized naming and focused exclusively on 3 MarineSABRES research sites
 - **Simplification**: Simplified to WMS-only data sources for easier maintenance
 - **Version Management**: Centralized version tracking in `__version__.py`
+- **Framework Updates (Oct 2025)**:
+  - Flask-Limiter: 3.8.0 → 4.0.0 (requires Python >=3.10)
+  - Gunicorn: 21.2.0 → 23.0.0
+  - requests: 2.32.3 → 2.32.5
+  - redis: 5.0.0 → 6.4.0
+  - black: 25.1.0 → 25.9.0 (2025 stable style)
+- **Bug Fixes**: Fixed health endpoint 404 error in subpath deployment, disabled factsheet loading, improved console logging
 
 ### Previous Updates (Version 1.1.0)
 
 ### Major Updates Applied
 - **Flask**: 2.3.3 → 3.1.2 (security updates, better performance)
-- **GeoPandas**: 0.14.0 → 1.1.1 (major version with enhanced features)
+- **GeoPandas**: 0.14.0 → 1.1.1 (major version with enhanced features) - Later removed in v1.3.0
 - **Testing Framework**: Pytest 7.4.2 → 8.4.2 (improved compatibility)
-- **Code Quality**: Black 23.7.0 → 25.1.0, Flake8 6.0.0 → 7.3.0
-- **Python Support**: Minimum version raised from 3.8 → 3.9
+- **Code Quality**: Black 23.7.0 → 25.9.0, Flake8 6.0.0 → 7.3.0
+- **Python Support**: Minimum version raised from 3.8 → 3.10 (required for Flask-Limiter 4.0.0)
 
 ### Security Improvements
 - Updated Flask to address CVE-2024 vulnerabilities
 - Enhanced dependency versions for better security posture
 - Added explicit Werkzeug dependency for security
-- Updated requests library for latest security patches
+- Updated requests library for latest security patches (2.32.5)
+- Comprehensive input validation on all layer name parameters
 
 ## Development Commands
 
@@ -95,22 +103,26 @@ gunicorn -c gunicorn.conf.py app:app
 
 # Or using systemd service
 sudo systemctl start flaskapp
+
+# Or using deployment script
+./deploy_to_da.sh
 ```
 
 - Development server runs on port 5002 by default
-- Accessible at http://localhost:5002 or http://laguna.ku.lt:5002
+- Accessible at http://localhost:5002 or http://laguna.ku.lt/DA/
 - Debug mode enabled by default in development
 - Port can be configured via `FLASK_RUN_PORT` environment variable
+- Production deployment at /DA/ subpath using nginx reverse proxy
 
 ### Dependencies
 This application requires:
-- Flask 3.1.2 (web framework) - Updated for security and performance
-- Flask-Caching 2.3.1 (caching layer)
-- Flask-Limiter 3.8.0 (API rate limiting)
-- requests 2.32.3 (HTTP client for WMS requests) - Security updates
+- Flask 3.1.2 (web framework) - Latest stable (Aug 2025)
+- Flask-Caching 2.3.1 (caching layer) - Latest stable (Feb 2025)
+- Flask-Limiter 4.0.0 (API rate limiting) - Latest stable (Sep 2025, requires Python >=3.10)
+- requests 2.32.5 (HTTP client for WMS requests) - Latest stable (Aug 2025)
 - Werkzeug 3.1.0+ (WSGI utilities) - Explicit security dependency
-- gunicorn 21.2.0+ (production WSGI server)
-- redis 5.0.0+ (optional: distributed caching)
+- gunicorn 23.0.0+ (production WSGI server) - Latest stable (Oct 2025)
+- redis 6.4.0+ (optional: distributed caching) - Latest stable (2025)
 
 Install dependencies:
 ```bash
@@ -125,11 +137,11 @@ pip install -e .[dev]
 ```
 
 ### Testing Endpoints
-- Main interface: http://localhost:5001
-- Health check: http://localhost:5001/health
-- WMS connectivity test: http://localhost:5001/test
-- API endpoints: http://localhost:5001/api/layers
-- Human Activities layers: http://localhost:5001/api/all-layers
+- Main interface: http://localhost:5002 or http://laguna.ku.lt/DA/
+- Health check: http://localhost:5002/health or http://laguna.ku.lt/DA/health
+- WMS connectivity test: http://localhost:5002/test
+- API endpoints: http://localhost:5002/api/layers or http://laguna.ku.lt/DA/api/layers
+- Human Activities layers: http://localhost:5002/api/all-layers
 
 ## EMODnet Integration Details
 

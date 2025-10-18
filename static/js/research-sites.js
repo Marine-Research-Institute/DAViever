@@ -113,12 +113,12 @@ const ResearchSites = (function() {
         console.log('🗺️ Research Sites module initialized');
         console.log('📍 Available sites:', Object.keys(researchSites).join(', '));
         
-        // Test map availability
+        // Test map availability (informational only - map loads async)
         const map = window.MapInit && window.MapInit.getMap ? window.MapInit.getMap() : null;
         if (map) {
             console.log('✅ Map instance is available for research sites');
         } else {
-            console.warn('⚠️ Map instance not yet available. Will retry on button click.');
+            console.log('ℹ️ Map instance initializing... (will be available for button clicks)');
         }
     }
 

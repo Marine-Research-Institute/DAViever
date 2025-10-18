@@ -23,6 +23,7 @@ from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 import requests
 
 # Add src and config directories to path
@@ -43,6 +44,15 @@ from emodnet_viewer.utils.geometry_utils import (
 app = Flask(__name__)
 config = get_config()
 app.config.from_object(config)
+
+# Ensure APPLICATION_ROOT is set from environment variable for subpath deployment
+# This is critical for url_for() to generate correct URLs under /DA/
+if 'APPLICATION_ROOT' in os.environ:
+    app.config['APPLICATION_ROOT'] = os.environ['APPLICATION_ROOT']
+
+# Add ProxyFix middleware to handle reverse proxy headers (X-Script-Name, etc.)
+# This is required for proper URL generation when deployed behind nginx at /DA/
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Setup logging
 setup_logging(config.LOG_LEVEL, config.LOG_FILE)
@@ -489,6 +499,10 @@ def index():
     app_root = app.config.get('APPLICATION_ROOT', '')
     api_base_url = f"{app_root}/api" if app_root else "/api"
 
+    # For static files served by nginx, we need to prepend APPLICATION_ROOT
+    # since nginx serves them directly at /DA/static/ and doesn't go through Flask
+    static_prefix = f"{app_root}/static" if app_root else "/static"
+
     return render_template(
         'index.html',
         layers=all_layers["wms_layers"],
@@ -500,6 +514,7 @@ def index():
         FINFISH_WFS_BASE_URL=FINFISH_WFS_BASE_URL,
         APPLICATION_ROOT=app_root,
         API_BASE_URL=api_base_url,
+        STATIC_PREFIX=static_prefix,
     )
 
 

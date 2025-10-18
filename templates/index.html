@@ -8,7 +8,7 @@
     <!-- External CSS Dependencies -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ STATIC_PREFIX }}/css/styles.css">
 
     <!-- External JavaScript Dependencies -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -39,7 +39,7 @@
     <div id="container">
         <div id="sidebar">
             <h1>
-                <img src="{{ url_for('static', filename='img/marinesabres_logo.png') }}" alt="MarineSABRES Logo" style="height: 45px; vertical-align: middle; margin-right: 12px;">
+                <img src="{{ STATIC_PREFIX }}/img/marinesabres_logo.png" alt="MarineSABRES Logo" style="height: 45px; vertical-align: middle; margin-right: 12px;">
                 MarineSABRES Demonstration Area Tool
                 <button class="help-button" onclick="showVersionInfo()" title="Version Information & Help">
                     <span class="help-icon-btn">ⓘ</span>
@@ -470,14 +470,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <!-- Application JavaScript Modules (loaded in correct dependency order) -->
-    <script src="{{ url_for('static', filename='js/config.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/map-init.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/layer-manager.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/bbt-tool.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/research-sites.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/ui-handlers.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/area-selection.js') }}?v=2"></script>
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=2"></script>
+    <script src="{{ STATIC_PREFIX }}/js/config.js?v=4"></script>
+    <script src="{{ STATIC_PREFIX }}/js/map-init.js?v=4"></script>
+    <script src="{{ STATIC_PREFIX }}/js/layer-manager.js?v=4"></script>
+    <script src="{{ STATIC_PREFIX }}/js/bbt-tool.js?v=4"></script>
+    <script src="{{ STATIC_PREFIX }}/js/research-sites.js?v=4"></script>
+    <script src="{{ STATIC_PREFIX }}/js/ui-handlers.js?v=4"></script>
+    <script src="{{ STATIC_PREFIX }}/js/area-selection.js?v=4"></script>
+    <script src="{{ STATIC_PREFIX }}/js/app.js?v=4"></script>
 
     <!-- Version Info Modal Functions -->
     <script>
@@ -486,7 +486,8 @@
             modal.style.display = 'block';
 
             // Fetch health check to get real-time status
-            fetch('/health')
+            const healthUrl = window.AppConfig.API_BASE_URL ? `${window.AppConfig.API_BASE_URL.replace('/api', '')}/health` : '/health';
+            fetch(healthUrl)
                 .then(response => response.json())
                 .then(data => {
                     // Update health status

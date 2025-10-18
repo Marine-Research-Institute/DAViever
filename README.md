@@ -1,16 +1,13 @@
-# MARBEFES BBT Database
+# MarineSABRES Demonstration Area Tool
 
-## Marine Biodiversity and Ecosystem Functioning Database for Broad Belt Transects
+## Marine Systems Approaches for Biodiversity Resilience and Ecosystem Sustainability
 
-A Flask-based web application for visualizing EMODnet (European Marine Observation and Data Network) Seabed Habitats WMS layers with comprehensive vector layer support. This interactive mapping platform displays seabed habitat datasets from EMODnet infrastructure alongside local GPKG vector data with real-time hover tooltips and area calculations.
-
-![MARBEFES Logo](LOGO/marbefes_02.png)
+A Flask-based web application for visualizing EMODnet (European Marine Observation and Data Network) Seabed Habitats and Human Activities WMS (Web Map Service) layers for three MarineSABRES research sites. The application provides an interactive map viewer that displays seabed habitat datasets and human pressure layers from EMODnet infrastructure.
 
 **Project Information:**
-- **Grant:** Horizon Europe Grant Agreement No. 101060937
-- **Website:** [marbefes.eu](https://marbefes.eu)
-- **CORDIS:** [Project Page](https://cordis.europa.eu/project/id/101060937)
-- **Toolbox:** [MARBEFES Toolbox](https://marbefes.lifewatch.eu)
+- **Grant:** Horizon Europe Grant Agreement No. 101093169
+- **Research Sites:** Tuscan Archipelago, Arctic Northeast Atlantic, Macaronesia
+- **Version:** 1.3.0-dev
 
 ## Table of Contents
 
@@ -21,54 +18,42 @@ A Flask-based web application for visualizing EMODnet (European Marine Observati
 - [API Documentation](#api-documentation)
 - [Development](#development)
 - [Configuration](#configuration)
-- [Architecture](#architecture)
+- [Deployment](#deployment)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Features
 
-### 🗺️ **Interactive Mapping**
+### Interactive Mapping
 - **Leaflet-based Interface**: Modern, responsive mapping with multiple basemap options
-- **Multi-layer Support**: Simultaneous display of WMS overlays and vector data
+- **Multi-layer Support**: Simultaneous display of EMODnet WMS overlays
 - **Dynamic Controls**: Real-time opacity adjustment and layer switching
 - **Responsive Design**: Optimized for desktop browsers with sidebar/map layout
 
-### 🌊 **EMODnet Integration**
-- **WMS Connectivity**: Direct integration with EMODnet Seabed Habitats WMS service
-- **European Focus**: Enhanced support for EuSeaMap 2023 habitat classifications
+### EMODnet Integration
+- **Seabed Habitats WMS**: Direct integration with EMODnet Seabed Habitats service (~265 layers)
+- **Human Activities WMS**: Integration with EMODnet Human Activities service (48 pressure layers)
 - **Automatic Fallback**: Graceful degradation when services are unavailable
 - **Legend Support**: Dynamic legend display for active layers
+- **GetCapabilities Parsing**: Automatic discovery of available WMS layers
 
-### 📊 **Vector Data Support**
-- **GPKG Processing**: Automatic discovery and loading of GeoPackage files
-- **Real-time Tooltips**: Hover tooltips with geodesic area calculations
-- **Interactive Features**: Click for detailed feature information
-- **Multiple Geometries**: Support for Polygon and MultiPolygon features
-
-### 🎯 **BBT Navigation**
-- **Quick Navigation**: One-click zoom to specific Broad Belt Transect areas
-- **11 Study Areas**: Archipelago, Balearic, Bay of Gdansk, Gulf of Biscay, Heraklion, Hornsund, Irish Sea, Kongsfjord, Lithuanian coast, North Sea, Sardinia
+### Research Site Navigation
+- **Quick Navigation**: One-click zoom to three MarineSABRES research sites
+- **Tuscan Archipelago**: Seagrass conservation and tourism
+- **Arctic Northeast Atlantic**: Climate change and commercial fisheries
+- **Macaronesia**: Biodiversity conservation and ecotourism
 - **Smart Zoom**: Automatic layer loading and optimal view extent
-- **Bathymetry Data**: Depth statistics (min/max/avg) for each BBT area
-- **Editable Metadata**: Store and manage BBT-specific research data
 
-### 🚀 **3D Visualization**
-- **PyDeck Integration**: Advanced 3D visualizations using Deck.gl
-- **Multiple Layer Types**: Hexagon aggregation, heatmaps, grid layers, contours, 3D columns
-- **Customizable Views**: Multiple camera angles and color schemes
-- **Sample Data**: Built-in oceanographic data for demonstration
-
-### 📡 **Comprehensive API**
+### Comprehensive API
 - **RESTful Endpoints**: JSON APIs for all data access
-- **Layer Management**: Programmatic access to WMS and vector layers
-- **Metadata Support**: Layer bounds, feature counts, and styling information
+- **Layer Management**: Programmatic access to WMS layers
+- **Health Monitoring**: Health check endpoint for production deployment
 - **Cross-Origin Support**: CORS-enabled for external integrations
 
 ## Quick Start
 
 ### Prerequisites
-- Python 3.9+
-- Conda or pip package manager
+- Python 3.10+ (required for Flask-Limiter 4.0.0)
+- pip package manager
 - Web browser (Chrome/Firefox recommended)
 
 ### Installation
@@ -76,16 +61,11 @@ A Flask-based web application for visualizing EMODnet (European Marine Observati
 1. **Clone the repository:**
 ```bash
 git clone <repository-url>
-cd EMODNET_PyDeck
+cd DAViewer
 ```
 
-2. **Set up environment:**
+2. **Set up virtual environment:**
 ```bash
-# Using conda (recommended)
-conda create -n marbefes python=3.9
-conda activate marbefes
-
-# Or using pip with virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # or
@@ -107,7 +87,7 @@ python app.py
 ```
 
 5. **Open your browser:**
-Navigate to [http://localhost:5000](http://localhost:5000)
+Navigate to [http://localhost:5002](http://localhost:5002)
 
 ## Usage
 
@@ -116,76 +96,35 @@ Navigate to [http://localhost:5000](http://localhost:5000)
 The main interface provides several key areas:
 
 #### **Sidebar Controls**
-- **BBT Quick Navigation**: Direct access to 9 study areas
-- **Layer Selection**: EMODnet and HELCOM overlay controls
+- **Research Site Navigation**: Direct access to Tuscan, Arctic, and Macaronesia sites
+- **Layer Selection**: EMODnet Seabed Habitats and Human Activities layers
 - **Opacity Control**: Real-time transparency adjustment
 - **Basemap Selection**: Choose from OpenStreetMap, Satellite, Ocean, or Light Gray
-- **3D Visualization**: Enable PyDeck 3D features with customizable parameters
+- **Legend Display**: Dynamic legend for active WMS layers
 
 #### **Map Interaction**
 - **Pan and Zoom**: Standard mouse/touch controls
 - **Layer Toggling**: Show/hide different data layers
-- **Feature Info**: Click on features for detailed information
-- **Hover Tooltips**: Real-time area calculations for BBT polygons
+- **Feature Info**: Click on map for WMS feature information
+- **Research Site Buttons**: Fly to predefined research locations
 
 #### **Data Layers**
 
-**EMODnet Layers (WMS):**
-- EUSeaMap 2023 - European Biological Zones
-- EUSeaMap 2023 - European Substrate Types
-- EUSeaMap 2023 - EUNIS Classification
-- EUSeaMap 2023 - Energy Zones
-- Confidence layers and Annex I habitats
+**EMODnet Seabed Habitats Layers (WMS):**
+- EUSeaMap 2021 - Comprehensive habitat map
+- Benthic habitat classifications
+- OSPAR threatened habitat types
+- Seabed substrate classifications
+- Habitat prediction confidence levels
+- EU Habitats Directive Annex I habitats
 
-**HELCOM Layers:**
-- Baltic Sea environmental pressure data
-- Chemical weapons dumpsites
-- Munitions and dumping areas
-- Transportation routes
-
-**Vector Layers (Local GPKG):**
-- Bbts - Merged (6 MultiPolygon features)
-- Bbts - Broad Belt Transects (9 MultiPolygon features)
-
-### BBT Bathymetry Data Management
-
-The application includes tools to manage bathymetry statistics (depth data) for each BBT area.
-
-#### **Quick Update (CSV Method - Recommended)**
-
-1. **Edit the CSV file** with your bathymetry measurements:
-```bash
-nano data/bbt_bathymetry_manual.csv
-```
-
-CSV format:
-```csv
-BBT_Name,Min_Depth_m,Max_Depth_m,Avg_Depth_m,Notes
-Archipelago,0,45.8,22.9,Coastal to shallow shelf waters
-Lithuanian coast,0,35.0,17.5,Shallow Baltic coastal gradient
-```
-
-2. **Convert to JSON** and update the application:
-```bash
-./update_bathymetry_from_csv.sh
-```
-
-3. **Restart the application** - bathymetry data will appear in BBT popups
-
-#### **Advanced: Automated Sampling (Experimental)**
-
-For automated bathymetry data collection from EMODnet WMS service:
-```bash
-# Sample bathymetry data (may take 5-10 minutes)
-./calculate_bathymetry.sh --samples 25
-
-# With verbose logging
-./calculate_bathymetry.sh --verbose --samples 15
-```
-
-**Note:** The automated method is experimental as EMODnet Bathymetry WMS primarily returns visualization data (RGB colors) rather than raw depth measurements. Manual CSV input is recommended for accurate bathymetric data.
-
-📖 **Full Documentation:** See [BATHYMETRY_TOOL.md](BATHYMETRY_TOOL.md) for complete details.
+**EMODnet Human Activities Layers (WMS):**
+- Shipping routes and density
+- Fishing areas and intensity
+- Offshore installations
+- Aquaculture sites
+- Cable and pipeline routes
+- Aggregate extraction areas
 
 ### Command Line Usage
 
@@ -196,29 +135,31 @@ python app.py
 
 **Using different environments:**
 ```bash
-# Activate specific conda environment
-conda activate shiny
-python app.py
-
-# With environment variables
+# Development mode
 FLASK_ENV=development FLASK_DEBUG=1 python app.py
+
+# Custom host and port
+FLASK_HOST=0.0.0.0 FLASK_RUN_PORT=5002 python app.py
 ```
 
-**Testing connectivity:**
+**Testing endpoints:**
 ```bash
-# Test WMS service
-curl http://localhost:5000/test
+# Health check
+curl http://localhost:5002/health
 
-# Test API endpoints
-curl http://localhost:5000/api/layers
-curl http://localhost:5000/api/vector/layers
+# WMS connectivity test
+curl http://localhost:5002/test
+
+# API endpoints
+curl http://localhost:5002/api/layers
+curl http://localhost:5002/api/all-layers
 ```
 
 ## API Documentation
 
 ### Base URL
 ```
-http://localhost:5000/api
+http://localhost:5002/api
 ```
 
 ### Endpoints
@@ -227,15 +168,15 @@ http://localhost:5000/api
 ```http
 GET /api/layers
 ```
-Returns available EMODnet WMS layers.
+Returns available EMODnet Seabed Habitats WMS layers.
 
 **Response:**
 ```json
 [
   {
-    "name": "eusm2023_bio_full",
-    "title": "EUSeaMap 2023 - European Biological Zones",
-    "description": "Latest broad-scale biological habitat map"
+    "name": "all_eusm2021",
+    "title": "EUSeaMap 2021",
+    "description": "Comprehensive European seabed habitat map"
   }
 ]
 ```
@@ -244,80 +185,13 @@ Returns available EMODnet WMS layers.
 ```http
 GET /api/all-layers
 ```
-Returns combined WMS, HELCOM, and vector layer information.
+Returns combined EMODnet Seabed Habitats and Human Activities layers.
 
 **Response:**
 ```json
 {
   "wms_layers": [...],
-  "helcom_layers": [...],
-  "vector_layers": [...],
-  "vector_support": true
-}
-```
-
-#### **Vector Layers**
-```http
-GET /api/vector/layers
-```
-Returns available vector layers with metadata.
-
-**Response:**
-```json
-{
-  "count": 2,
-  "layers": [
-    {
-      "display_name": "Bbts - Merged",
-      "geometry_type": "MultiPolygon",
-      "feature_count": 6,
-      "bounds": [-4.05, 39.61, 22.75, 79.22],
-      "crs": "EPSG:4326",
-      "style": {
-        "color": "#008B8B",
-        "fillColor": "#20B2AA",
-        "fillOpacity": 0.4
-      }
-    }
-  ]
-}
-```
-
-#### **Individual Vector Layer**
-```http
-GET /api/vector/layer/<layer_name>
-```
-Returns GeoJSON for a specific vector layer.
-
-**Parameters:**
-- `simplify` (optional): Tolerance for geometry simplification
-
-**Response:**
-```json
-{
-  "type": "FeatureCollection",
-  "features": [...],
-  "metadata": {
-    "layer_name": "Bbts - Merged",
-    "feature_count": 6,
-    "bounds": [...],
-    "style": {...}
-  }
-}
-```
-
-#### **Vector Bounds**
-```http
-GET /api/vector/bounds
-```
-Returns combined bounds of all vector layers.
-
-**Response:**
-```json
-{
-  "overall_bounds": [-4.05, 35.29, 25.56, 79.22],
-  "center": [10.76, 57.25],
-  "layer_count": 2
+  "human_activities_layers": [...]
 }
 ```
 
@@ -333,7 +207,7 @@ Proxies WMS GetCapabilities request.
 ```http
 GET /api/legend/<layer_name>
 ```
-Returns legend URL for a specific layer.
+Returns legend URL for a specific layer (with input validation).
 
 **Response:**
 ```json
@@ -342,62 +216,52 @@ Returns legend URL for a specific layer.
 }
 ```
 
+#### **Health Check**
+```http
+GET /health
+```
+Returns application health status.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-18T12:00:00Z",
+  "version": "1.3.0-dev"
+}
+```
+
 ## Development
 
 ### Project Structure
 
 ```
-EMODNET_PyDeck/
+DAViewer/
 ├── app.py                          # Main Flask application
+├── __version__.py                  # Version tracking
 ├── templates/
 │   └── index.html                 # Main web interface template
+├── static/
+│   ├── css/
+│   │   └── styles.css            # Application styles
+│   └── js/
+│       ├── config.js             # Client configuration
+│       ├── map-init.js           # Map initialization
+│       ├── layer-manager.js      # Layer management
+│       └── research-sites.js     # Research site navigation
 ├── src/
 │   └── emodnet_viewer/
 │       └── utils/
-│           ├── vector_loader.py         # GPKG processing utilities
-│           ├── bathymetry_calculator.py # Bathymetry data calculator
-│           ├── logging_config.py        # Logging configuration
-│           └── monitoring.py            # Performance monitoring
-├── data/
-│   ├── vector/
-│   │   └── BBT.gpkg                # Broad Belt Transects data
-│   ├── bbt_bathymetry_manual.csv   # Manual bathymetry data (editable)
-│   └── bbt_bathymetry_stats.json   # Processed bathymetry statistics
-├── scripts/
-│   ├── calculate_bathymetry.py     # Bathymetry sampling tool
-│   └── csv_to_bathymetry_json.py   # CSV to JSON converter
+│           └── logging_config.py  # Logging configuration
 ├── config/
-│   └── config.py                   # Configuration settings
-├── tests/                          # Test suite
-├── docs/                           # Additional documentation
-├── LOGO/                           # Project logos and branding
-├── calculate_bathymetry.sh         # Bathymetry sampling wrapper
-├── update_bathymetry_from_csv.sh   # CSV update wrapper
-├── requirements.txt                # Production dependencies
-├── requirements-dev.txt            # Development dependencies
-├── BATHYMETRY_TOOL.md             # Bathymetry tool documentation
-└── CLAUDE.md                      # AI assistant instructions
+│   └── config.py                 # Configuration settings
+├── gunicorn.conf.py              # Gunicorn production config
+├── nginx-da.conf                 # Nginx reverse proxy config
+├── deploy_to_da.sh               # Deployment script
+├── requirements.txt              # Production dependencies
+├── requirements-dev.txt          # Development dependencies
+└── CLAUDE.md                     # AI assistant instructions
 ```
-
-### Architecture
-
-#### **Flask Application (`app.py`)**
-- **Modular Design**: Clean separation of routes, utilities, and configuration
-- **Template Rendering**: Uses standard Flask templates instead of embedded HTML
-- **Error Handling**: Graceful fallbacks for service unavailability
-- **Vector Integration**: Seamless GPKG loading with GeoPandas
-
-#### **Frontend (`templates/index.html`)**
-- **Leaflet Mapping**: Modern JavaScript mapping library
-- **PyDeck 3D**: Advanced visualizations with Deck.gl
-- **Responsive CSS**: Mobile-friendly design patterns
-- **Interactive JavaScript**: Real-time user interface updates
-
-#### **Data Processing (`src/emodnet_viewer/`)**
-- **Vector Loader**: GPKG file discovery and processing
-- **Coordinate Systems**: Automatic CRS normalization to EPSG:4326
-- **Geometry Utilities**: Area calculations and spatial operations
-- **Caching**: Efficient data loading and storage
 
 ### Development Setup
 
@@ -431,39 +295,27 @@ FLASK_ENV=development python app.py
 FLASK_DEBUG=1 python app.py
 ```
 
-### Adding New Features
+### Architecture
 
-#### **New WMS Layers**
-Edit the `EMODNET_LAYERS` list in `app.py`:
-```python
-EMODNET_LAYERS = [
-    {
-        "name": "new_layer_name",
-        "title": "Human Readable Title",
-        "description": "Layer description"
-    }
-]
-```
+#### **Flask Application (`app.py`)**
+- **Modular Design**: Clean separation of routes, utilities, and configuration
+- **Template Rendering**: Uses standard Flask templates with modular JavaScript
+- **Error Handling**: Graceful fallbacks for service unavailability
+- **WMS Integration**: Automatic GetCapabilities parsing for layer discovery
+- **Security**: Input validation on all layer name parameters
 
-#### **New Vector Data**
-1. Place GPKG files in `data/vector/`
-2. Restart the application
-3. Layers are automatically discovered and loaded
+#### **Frontend (`templates/index.html`)**
+- **Leaflet Mapping**: Modern JavaScript mapping library (v1.9.4)
+- **Modular JavaScript**: Separate modules for config, map init, layer management, research sites
+- **Responsive CSS**: Mobile-friendly design patterns
+- **No Build Process**: Uses CDN resources for simplicity
 
-#### **New API Endpoints**
-Add routes to `app.py`:
-```python
-@app.route("/api/new-endpoint")
-def new_endpoint():
-    """New API endpoint"""
-    return jsonify({"status": "success"})
-```
-
-#### **Frontend Modifications**
-Edit `templates/index.html`:
-- Modify CSS in the `<style>` section
-- Add JavaScript functionality in the `<script>` section
-- Update HTML structure in the `<body>` section
+#### **WMS Integration**
+- **EMODnet Seabed Habitats**: https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms
+- **EMODnet Human Activities**: https://ows.emodnet-humanactivities.eu/wms
+- **XML Namespace Processing**: Handles both namespaced and non-namespaced responses
+- **Layer Filtering**: Client-side filtering and search capabilities
+- **Caching**: Efficient layer list caching
 
 ## Configuration
 
@@ -473,13 +325,11 @@ Edit `templates/index.html`:
 # Flask settings
 FLASK_ENV=development          # development/production
 FLASK_DEBUG=1                 # Enable debug mode
-
-# WMS Configuration
-WMS_BASE_URL=https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms
-HELCOM_WMS_BASE_URL=https://maps.helcom.fi/arcgis/services/MADS/Pressures/MapServer/WMSServer
+FLASK_HOST=0.0.0.0            # Bind address
+FLASK_RUN_PORT=5002           # Application port
+APPLICATION_ROOT=/DA          # Subpath deployment (optional)
 
 # Application settings
-VECTOR_DATA_DIR=data/vector   # Vector data directory
 LOG_LEVEL=INFO               # Logging level
 ```
 
@@ -491,26 +341,10 @@ LOG_LEVEL=INFO               # Logging level
 - Timeout: 10 seconds
 - Supports: GetMap, GetCapabilities, GetLegendGraphic
 
-**HELCOM Baltic Sea:**
-- Base URL: `https://maps.helcom.fi/arcgis/services/MADS/Pressures/MapServer/WMSServer`
+**EMODnet Human Activities:**
+- Base URL: `https://ows.emodnet-humanactivities.eu/wms`
 - Version: 1.3.0
-- Focus: Environmental pressures and chemical munitions
-
-### Data Configuration
-
-**Vector Data Requirements:**
-- Format: GeoPackage (GPKG)
-- Location: `data/vector/` directory
-- Coordinate System: Any (automatically converted to EPSG:4326)
-- Geometry Types: Polygon, MultiPolygon
-
-**Supported File Structure:**
-```
-data/vector/
-├── BBts.gpkg              # Main dataset
-├── additional_data.gpkg   # Additional layers
-└── README.md             # Data documentation
-```
+- Supports: GetMap, GetCapabilities, GetLegendGraphic
 
 ## Deployment
 
@@ -522,86 +356,92 @@ data/vector/
 pip install gunicorn
 
 # Run with Gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+gunicorn -w 4 -b 127.0.0.1:5002 app:app
 
 # With configuration file
 gunicorn -c gunicorn.conf.py app:app
 ```
 
-#### **Using Docker**
-```dockerfile
-FROM python:3.9-slim
+#### **Using Systemd**
+Create `/etc/systemd/system/flaskapp.service`:
+```ini
+[Unit]
+Description=MarineSABRES DA Viewer
+After=network.target
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+[Service]
+User=razinka
+WorkingDirectory=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer
+Environment="PATH=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/venv/bin"
+ExecStart=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/venv/bin/gunicorn -c gunicorn.conf.py app:app
+Restart=always
 
-COPY . .
-EXPOSE 5000
-
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]
+[Install]
+WantedBy=multi-user.target
 ```
 
-#### **Environment Configuration**
+Start service:
 ```bash
-# Production environment
-export FLASK_ENV=production
-export FLASK_DEBUG=0
-
-# Security settings
-export SECRET_KEY=your-secret-key
-export SSL_REDIRECT=1
-
-# Performance settings
-export WORKERS=4
-export TIMEOUT=30
+sudo systemctl daemon-reload
+sudo systemctl enable flaskapp
+sudo systemctl start flaskapp
 ```
 
-### Nginx Configuration
+#### **Nginx Configuration**
+
+For subpath deployment at `/DA/`:
 
 ```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
+# Static files served directly by nginx
+location /DA/static/ {
+    alias /home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer/static/;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
 
-    location / {
-        proxy_pass http://localhost:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-
-    location /static {
-        alias /path/to/app/static;
-        expires 1d;
-    }
+# Proxy to Flask application
+location /DA/ {
+    rewrite ^/DA(/.*)$ $1 break;
+    proxy_pass http://127.0.0.1:5002;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Prefix /DA;
+    proxy_set_header X-Script-Name /DA;
 }
 ```
 
-## Testing
-
-### Test Coverage
-
-The application includes comprehensive test coverage:
-
+#### **Deployment Script**
 ```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src --cov-report=html
-
-# Run specific test categories
-pytest tests/unit/          # Unit tests
-pytest tests/integration/   # Integration tests
+./deploy_to_da.sh
 ```
 
-### Test Categories
+This script:
+1. Stops the current Gunicorn process
+2. Activates virtual environment
+3. Updates dependencies
+4. Starts Gunicorn with production config
+5. Verifies deployment
 
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: API endpoint testing
-- **Vector Loading Tests**: GPKG processing validation
-- **WMS Integration Tests**: External service connectivity
+## Dependencies
+
+### Core Dependencies (Production)
+- Flask==3.1.2 - Web framework
+- Flask-Caching==2.3.1 - Caching layer
+- Flask-Limiter==4.0.0 - API rate limiting (requires Python >=3.10)
+- requests==2.32.5 - HTTP client for WMS requests
+- Werkzeug>=3.1.0 - WSGI utilities
+- gunicorn>=23.0.0 - Production WSGI server
+- redis>=6.4.0 - Distributed caching (optional)
+
+### Development Dependencies
+- pytest==8.4.2 - Testing framework
+- black==25.9.0 - Code formatter
+- flake8==7.3.0 - Code linter
+- mypy==1.18.2 - Static type checker
+- isort==7.0.0 - Import sorter
+
+See `requirements.txt` and `requirements-dev.txt` for complete lists.
 
 ## Troubleshooting
 
@@ -609,56 +449,57 @@ pytest tests/integration/   # Integration tests
 
 **1. Port Already in Use**
 ```bash
-# Find process using port 5000
-lsof -i :5000
+# Find process using port 5002
+lsof -i :5002
 
 # Kill process
 kill -9 <PID>
 
 # Or use different port
-python app.py --port 5001
+FLASK_RUN_PORT=5003 python app.py
 ```
 
-**2. Vector Support Disabled**
-```bash
-# Install missing dependencies
-pip install geopandas fiona pyproj
-
-# Check installation
-python -c "import geopandas; print('OK')"
-```
-
-**3. WMS Service Unavailable**
+**2. WMS Service Unavailable**
 - Check internet connectivity
-- Verify WMS URLs are accessible
+- Verify WMS URLs are accessible (test with curl)
 - Review firewall settings
-- Application provides fallback layers
+- Application provides fallback to predefined layer list
 
-**4. Template Not Found**
-```bash
-# Verify templates directory exists
-ls -la templates/
+**3. Static Files Not Loading (Subpath Deployment)**
+- Verify nginx configuration includes static file location block
+- Check STATIC_PREFIX is set correctly in app.py
+- Clear browser cache (static files use cache busting with version parameters)
+- Restart nginx after configuration changes
 
-# Check template file
-ls -la templates/index.html
-```
+**4. Health Endpoint 404**
+- Ensure APPLICATION_ROOT environment variable is set correctly
+- Check nginx proxy_set_header X-Forwarded-Prefix is configured
+- Verify health check URL includes subpath (e.g., /DA/health not /health)
 
-### Performance Optimization
+## Version History
 
-**1. Vector Data Optimization**
-- Use simplified geometries for large datasets
-- Implement data caching for frequently accessed layers
-- Consider spatial indexing for complex datasets
+### v1.3.0-dev (Current)
+- Code cleanup: Removed MARBEFES BBT functionality
+- Dependencies reduced: 13 → 7 core packages
+- Security: Comprehensive input validation for layer names
+- Focus: Standardized to MarineSABRES research sites
+- Simplification: WMS-only data sources
+- Framework updates: Flask 3.1.2, Gunicorn 23.0.0, Flask-Limiter 4.0.0
 
-**2. WMS Performance**
-- Enable tile caching in WMS requests
-- Use appropriate zoom level constraints
-- Implement request timeouts
+### v1.2.0
+- Added EMODnet Human Activities WMS integration
+- Implemented research site navigation
+- Enhanced legend display functionality
 
-**3. Frontend Optimization**
-- Enable gzip compression
-- Minimize JavaScript and CSS
-- Use CDN for external libraries
+### v1.1.0
+- Framework updates: Flask 3.1.2, GeoPandas 1.1.1
+- Security improvements and CVE fixes
+- Enhanced error handling and logging
+
+### v1.0.0
+- Initial release with EMODnet WMS integration
+- Interactive Leaflet-based mapping interface
+- RESTful API for layer access
 
 ## Contributing
 
@@ -677,7 +518,7 @@ ls -la templates/index.html
    ```
 4. **Commit changes:**
    ```bash
-   git commit -m "Add new feature"
+   git commit -m "feat: Add new feature description"
    ```
 5. **Push and create pull request**
 
@@ -686,26 +527,14 @@ ls -la templates/index.html
 - **Python**: Follow PEP 8 style guide
 - **JavaScript**: Use ES6+ features where supported
 - **Documentation**: Update docs for new features
-- **Testing**: Maintain test coverage above 80%
-
-### Issue Reporting
-
-When reporting issues, please include:
-- Operating system and Python version
-- Complete error messages and stack traces
-- Steps to reproduce the issue
-- Expected vs. actual behavior
+- **Testing**: Maintain test coverage
+- **Commit Messages**: Use conventional commits format
 
 ## License
 
-This project is part of the MARBEFES project funded by Horizon Europe Grant Agreement No. 101060937.
-
-For more information about the MARBEFES project, visit:
-- **Project Website**: [marbefes.eu](https://marbefes.eu)
-- **CORDIS Page**: [Project 101060937](https://cordis.europa.eu/project/id/101060937)
-- **Toolbox**: [MARBEFES Toolbox](https://marbefes.lifewatch.eu)
+This project is part of the MarineSABRES project funded by Horizon Europe Grant Agreement No. 101093169.
 
 ---
 
 **Contact Information:**
-For questions about this application or the MARBEFES project, please refer to the project website or CORDIS page for official contact information.
+For questions about this application or the MarineSABRES project, please refer to the project coordination team.

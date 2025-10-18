@@ -129,8 +129,9 @@
         // Initialize map event handlers
         setupMapEventHandlers();
 
-        // Load factsheet data in background
-        loadFactsheets();
+        // NOTE: Factsheet loading disabled - not applicable for MarineSABRES DA tool
+        // (Previously used for MARBEFES BBT project)
+        // loadFactsheets();
 
         console.log('LayerManager initialized');
     }
