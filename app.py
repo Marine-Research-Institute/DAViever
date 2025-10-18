@@ -946,6 +946,176 @@ def api_research_sites():
     return jsonify(RESEARCH_SITES)
 
 
+# ============================================
+# EMODNET HUMAN ACTIVITIES LAYER OVERLAP API
+# ============================================
+
+def load_human_activities_metadata():
+    """
+    Load EMODnet Human Activities layer metadata from JSON file
+
+    Returns:
+        List of layer dictionaries with name, description, and geographic_coverage
+    """
+    json_path = Path(__file__).parent / 'data' / 'emodnet_humanactivities_layers.json'
+
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            logger.info(f"Loaded {len(data.get('layers', []))} human activities layer metadata entries")
+            return data.get('layers', [])
+    except FileNotFoundError:
+        logger.warning(f"Human activities metadata file not found: {json_path}")
+        return []
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in human activities metadata file: {e}")
+        return []
+    except Exception as e:
+        logger.error(f"Error loading human activities metadata: {e}", exc_info=True)
+        return []
+
+
+def check_layer_overlap(user_bounds, layer_bounds):
+    """
+    Check if a user-drawn area overlaps with a layer's geographic coverage
+
+    Args:
+        user_bounds: (minX, minY, maxX, maxY) tuple for user-drawn area
+        layer_bounds: dict with westBoundLongitude, eastBoundLongitude, etc.
+
+    Returns:
+        bool: True if there is overlap, False otherwise
+    """
+    # Convert layer bounds to standard bbox format
+    layer_bbox = (
+        layer_bounds['westBoundLongitude'],
+        layer_bounds['southBoundLatitude'],
+        layer_bounds['eastBoundLongitude'],
+        layer_bounds['northBoundLatitude']
+    )
+
+    return bbox_intersects(user_bounds, layer_bbox)
+
+
+@app.route("/api/check-layer-overlap", methods=['POST'])
+@limiter.limit("30 per minute")
+def api_check_layer_overlap():
+    """
+    Check which EMODnet Human Activities layers overlap with a user-drawn area
+
+    Request Body:
+    {
+        "geometry": {GeoJSON geometry},
+        "bounds": [minX, minY, maxX, maxY]  # Optional, will be calculated from geometry if not provided
+    }
+
+    Returns:
+    {
+        "overlapping_layers": [
+            {
+                "name": "layer_name",
+                "description": "layer description",
+                "geographic_coverage": {...},
+                "overlap_percentage": float  # Percentage of user area that overlaps with layer
+            },
+            ...
+        ],
+        "total_overlapping": int,
+        "total_checked": int,
+        "user_bounds": [minX, minY, maxX, maxY],
+        "timestamp": ISO datetime string
+    }
+    """
+    try:
+        data = request.json
+
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        geometry = data.get('geometry')
+        user_bounds = data.get('bounds')
+
+        if not geometry and not user_bounds:
+            return jsonify({"error": "Either geometry or bounds must be provided"}), 400
+
+        # If geometry is provided but not bounds, calculate bounds
+        if geometry and not user_bounds:
+            if not validate_geojson_geometry(geometry):
+                return jsonify({"error": "Invalid GeoJSON geometry"}), 400
+
+            try:
+                stats = calculate_area_statistics(geometry)
+                user_bounds = stats['bounds']
+            except Exception as e:
+                logger.error(f"Error calculating bounds from geometry: {e}", exc_info=True)
+                return jsonify({"error": f"Failed to calculate bounds: {str(e)}"}), 500
+
+        # Convert bounds list to tuple
+        user_bounds_tuple = tuple(user_bounds)
+
+        # Load human activities layer metadata
+        layer_metadata = load_human_activities_metadata()
+
+        if not layer_metadata:
+            return jsonify({
+                "error": "Human activities metadata not available",
+                "overlapping_layers": [],
+                "total_overlapping": 0,
+                "total_checked": 0
+            }), 200
+
+        # Check each layer for overlap
+        overlapping_layers = []
+
+        for layer in layer_metadata:
+            layer_bounds = layer.get('geographic_coverage')
+
+            if not layer_bounds:
+                continue
+
+            # Check if layer overlaps with user area
+            if check_layer_overlap(user_bounds_tuple, layer_bounds):
+                # Calculate overlap percentage
+                layer_bbox = (
+                    layer_bounds['westBoundLongitude'],
+                    layer_bounds['southBoundLatitude'],
+                    layer_bounds['eastBoundLongitude'],
+                    layer_bounds['northBoundLatitude']
+                )
+
+                overlap_pct = calculate_overlap_percentage(user_bounds_tuple, layer_bbox)
+
+                overlapping_layers.append({
+                    "name": layer['name'],
+                    "description": layer.get('description', ''),
+                    "geographic_coverage": layer_bounds,
+                    "overlap_percentage": overlap_pct
+                })
+
+        # Sort by overlap percentage (highest first)
+        overlapping_layers.sort(key=lambda x: x['overlap_percentage'], reverse=True)
+
+        # Get current timestamp
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+
+        response = {
+            "overlapping_layers": overlapping_layers,
+            "total_overlapping": len(overlapping_layers),
+            "total_checked": len(layer_metadata),
+            "user_bounds": list(user_bounds_tuple),
+            "timestamp": timestamp
+        }
+
+        logger.info(f"Layer overlap check completed: {len(overlapping_layers)}/{len(layer_metadata)} layers overlap")
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Layer overlap check error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     logger.info("=" * 60)
     logger.info("MarineSABRES Demonstration Area Tool")
@@ -964,6 +1134,7 @@ if __name__ == "__main__":
     logger.info("  /api/all-layers - Get all layers (WMS + Human Activities, JSON)")
     logger.info("  /api/capabilities - Get WMS capabilities (XML, rate limited)")
     logger.info("  /api/legend/<layer> - Get legend URL for a layer")
+    logger.info("  /api/check-layer-overlap - Check layer overlap with drawn area (POST, JSON)")
 
     logger.info("\nPress Ctrl+C to stop the server")
     logger.info("-" * 60)
