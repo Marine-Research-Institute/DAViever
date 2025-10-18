@@ -72,6 +72,8 @@ _ul
 
 # Deployment artifacts
 www/
+deployment/backups/
 
 # Nginx/System files
 *.pid
+.gunicorn.pid
