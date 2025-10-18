@@ -1,0 +1,31 @@
+[Unit]
+Description=MarineSABRES Demonstration Area Tool - Development
+After=network.target
+
+[Service]
+Type=notify
+User=razinka
+Group=razinka
+WorkingDirectory=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer-dev
+Environment="PATH=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer-dev/venv/bin"
+Environment="FLASK_ENV=development"
+Environment="FLASK_DEBUG=1"
+Environment="PORT=5003"
+
+# Execute gunicorn
+ExecStart=/home/razinka/OneDrive/HORIZON_EUROPE/Marine-SABRES/DAViewer-dev/venv/bin/gunicorn -c gunicorn.conf.py app:app
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=marinesabres-da-dev
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
