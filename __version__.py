@@ -2,20 +2,20 @@
 Version information for MarineSABRES Demonstration Area Tool
 """
 
-__version__ = "1.3.0-dev"
-__version_info__ = (1, 3, 0, "dev")
-__release_date__ = "2025-10-16"
-__status__ = "Development"
+__version__ = "1.3.0"
+__version_info__ = (1, 3, 0)
+__release_date__ = "2025-10-18"
+__status__ = "Production"
 
-# Production version (to be released)
+# Production version (current)
 __production_version__ = "1.3.0"
-__production_release_date__ = "TBD"
+__production_release_date__ = "2025-10-18"
 
 # Version history
 VERSION_HISTORY = {
-    "1.3.0-dev": {
-        "date": "2025-10-16",
-        "status": "Development",
+    "1.3.0": {
+        "date": "2025-10-18",
+        "status": "Production",
         "changes": [
             "Removed MARBEFES BBT factsheet functionality",
             "Removed vector data processing (geopandas, fiona, pyproj, numpy)",
@@ -24,7 +24,17 @@ VERSION_HISTORY = {
             "Standardized project naming to MarineSABRES",
             "Focused exclusively on 3 research sites",
             "Simplified codebase for WMS-only data sources",
-            "Updated development frameworks: pytest 8.4.2, black 25.9.0, flake8 7.3.0, isort 7.0.0, mypy 1.18.2",
+            "Updated frameworks: Flask 3.1.2, Flask-Limiter 4.0.0, Gunicorn 23.0.0",
+            "Fixed deployment scripts and configuration",
+            "Implemented two-version deployment structure",
+        ]
+    },
+    "1.3.0-dev": {
+        "date": "2025-10-16",
+        "status": "Development",
+        "changes": [
+            "Development version with auto-reload enabled",
+            "Testing framework updates: pytest 8.4.2, black 25.9.0, flake8 7.3.0",
         ]
     },
     "1.2.1": {
