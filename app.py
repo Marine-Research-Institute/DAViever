@@ -1110,8 +1110,9 @@ def api_extract_layer_values():
                                 "lon": lon,
                                 "properties": properties
                             })
-                    except:
-                        # Not JSON or invalid response
+                    except (ValueError, KeyError, TypeError) as json_error:
+                        # Not JSON or invalid response structure
+                        logger.debug(f"Failed to parse GetFeatureInfo response: {json_error}")
                         pass
 
             except Exception as e:

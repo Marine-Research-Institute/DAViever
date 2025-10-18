@@ -8,9 +8,56 @@ import json
 from typing import Dict, List, Tuple, Any, Optional
 
 
+def validate_coordinate(coord: Tuple[float, float]) -> bool:
+    """
+    Validate a single coordinate pair
+
+    Args:
+        coord: (longitude, latitude) tuple
+
+    Returns:
+        True if valid, False otherwise
+    """
+    try:
+        lon, lat = coord
+        # Longitude must be between -180 and 180
+        if not isinstance(lon, (int, float)) or lon < -180 or lon > 180:
+            return False
+        # Latitude must be between -90 and 90
+        if not isinstance(lat, (int, float)) or lat < -90 or lat > 90:
+            return False
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def validate_coordinate_array(coords: List, depth: int = 0) -> bool:
+    """
+    Recursively validate coordinate arrays at different nesting depths
+
+    Args:
+        coords: Coordinate array to validate
+        depth: Current nesting depth
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not isinstance(coords, list):
+        return False
+
+    if depth == 0:
+        # At depth 0, we expect a coordinate pair [lon, lat]
+        if len(coords) != 2:
+            return False
+        return validate_coordinate((coords[0], coords[1]))
+    else:
+        # At deeper levels, recursively validate each element
+        return all(validate_coordinate_array(c, depth - 1) for c in coords)
+
+
 def validate_geojson_geometry(geometry: Dict[str, Any]) -> bool:
     """
-    Validate GeoJSON geometry structure
+    Validate GeoJSON geometry structure and coordinate values
 
     Args:
         geometry: GeoJSON geometry dictionary
@@ -27,12 +74,46 @@ def validate_geojson_geometry(geometry: Dict[str, Any]) -> bool:
     valid_types = ['Point', 'LineString', 'Polygon', 'MultiPoint',
                    'MultiLineString', 'MultiPolygon']
 
-    if geometry['type'] not in valid_types:
+    geom_type = geometry['type']
+    if geom_type not in valid_types:
         return False
 
     # Basic structure validation
     coords = geometry['coordinates']
     if not isinstance(coords, list):
+        return False
+
+    # Validate coordinates based on geometry type
+    try:
+        if geom_type == 'Point':
+            # Point: [lon, lat]
+            if len(coords) != 2:
+                return False
+            return validate_coordinate((coords[0], coords[1]))
+
+        elif geom_type == 'MultiPoint':
+            # MultiPoint: [[lon, lat], [lon, lat], ...]
+            return validate_coordinate_array(coords, depth=1)
+
+        elif geom_type == 'LineString':
+            # LineString: [[lon, lat], [lon, lat], ...]
+            return validate_coordinate_array(coords, depth=1)
+
+        elif geom_type == 'MultiLineString':
+            # MultiLineString: [[[lon, lat], ...], [[lon, lat], ...]]
+            return validate_coordinate_array(coords, depth=2)
+
+        elif geom_type == 'Polygon':
+            # Polygon: [[[lon, lat], [lon, lat], ...]]
+            if not coords or len(coords) < 1:
+                return False
+            return validate_coordinate_array(coords, depth=2)
+
+        elif geom_type == 'MultiPolygon':
+            # MultiPolygon: [[[[lon, lat], ...]], [[[lon, lat], ...]]]
+            return validate_coordinate_array(coords, depth=3)
+
+    except (TypeError, ValueError, IndexError):
         return False
 
     return True

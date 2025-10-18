@@ -21,6 +21,7 @@
     let currentLayerOverlapData = null;
     let isDrawingEnabled = false;
     let overlappingLayersGroup = null; // Layer group for displaying overlapping layers
+    let activeExtractions = new Map(); // Track active value extraction operations by layer name
 
     /**
      * Initialize the area selection module
@@ -554,8 +555,25 @@
 
                 console.log(`✅ Layer boundary displayed: ${layer.name}`);
 
-                // Extract values from the layer
-                await extractLayerValues(layer);
+                // Create abort controller for this extraction operation
+                const abortController = new AbortController();
+                activeExtractions.set(layer.name, abortController);
+
+                try {
+                    // Extract values from the layer with abort signal
+                    await extractLayerValues(layer, abortController.signal);
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log(`⏹️ Value extraction cancelled for ${layer.name}`);
+                    } else {
+                        throw error;
+                    }
+                } finally {
+                    // Clean up abort controller if it's still the active one
+                    if (activeExtractions.get(layer.name) === abortController) {
+                        activeExtractions.delete(layer.name);
+                    }
+                }
 
                 if (statusEl) {
                     statusEl.textContent = `Displayed ${layer.name}`;
@@ -576,6 +594,13 @@
             // Hide layer boundary
             console.log(`🗑️ Removing boundary for layer: ${layer.name}`);
 
+            // Cancel any active value extraction for this layer
+            const abortController = activeExtractions.get(layer.name);
+            if (abortController) {
+                abortController.abort();
+                activeExtractions.delete(layer.name);
+            }
+
             // Find and remove the layer from the group
             overlappingLayersGroup.eachLayer(function(mapLayer) {
                 if (mapLayer._layerKey === layerKey) {
@@ -583,6 +608,12 @@
                     console.log(`✅ Layer boundary removed: ${layer.name}`);
                 }
             });
+
+            // Clear any displayed values for this layer
+            const valueDisplay = document.getElementById(`values-${layer.name}`);
+            if (valueDisplay) {
+                valueDisplay.remove();
+            }
 
             const statusEl = document.getElementById('status');
             if (statusEl) {
@@ -595,8 +626,9 @@
     /**
      * Extract values from a WMS layer within the selected area
      * @param {Object} layer - Layer information
+     * @param {AbortSignal} signal - Optional abort signal to cancel the operation
      */
-    async function extractLayerValues(layer) {
+    async function extractLayerValues(layer, signal = null) {
         if (!selectedArea) {
             console.error('No area selected for value extraction');
             return;
@@ -611,8 +643,8 @@
                 statusEl.className = 'status loading';
             }
 
-            // Call backend API to extract values
-            const response = await fetch(`${window.AppConfig.API_BASE_URL}/extract-layer-values`, {
+            // Call backend API to extract values with abort signal
+            const fetchOptions = {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -622,7 +654,19 @@
                     geometry: selectedArea.geometry,
                     sample_points: 15
                 })
-            });
+            };
+
+            // Add abort signal if provided
+            if (signal) {
+                fetchOptions.signal = signal;
+            }
+
+            const response = await fetch(`${window.AppConfig.API_BASE_URL}/extract-layer-values`, fetchOptions);
+
+            // Check if request was aborted
+            if (signal && signal.aborted) {
+                throw new DOMException('Request aborted', 'AbortError');
+            }
 
             if (!response.ok) {
                 const error = await response.json();
@@ -630,6 +674,11 @@
             }
 
             const data = await response.json();
+
+            // Check again if request was aborted before displaying results
+            if (signal && signal.aborted) {
+                throw new DOMException('Request aborted', 'AbortError');
+            }
 
             // Display the extracted values
             displayExtractedValues(layer, data);
@@ -642,6 +691,11 @@
             }
 
         } catch (error) {
+            // Don't log abort errors as errors
+            if (error.name === 'AbortError') {
+                throw error; // Re-throw to be handled by caller
+            }
+
             console.error(`❌ Value extraction error for ${layer.name}:`, error);
 
             const statusEl = document.getElementById('status');
@@ -747,6 +801,13 @@
             overlappingLayersGroup.clearLayers();
             console.log('🗑️ Cleared all overlapping layer boundaries');
         }
+
+        // Cancel all active value extractions
+        activeExtractions.forEach((abortController, layerName) => {
+            abortController.abort();
+            console.log(`⏹️ Cancelled value extraction for ${layerName}`);
+        });
+        activeExtractions.clear();
     }
 
     /**
