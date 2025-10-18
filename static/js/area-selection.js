@@ -18,6 +18,7 @@
     let drawnItems = null;
     let selectedArea = null;
     let currentAnalysisData = null;
+    let currentLayerOverlapData = null;
     let isDrawingEnabled = false;
 
     /**
@@ -331,6 +332,9 @@
                 });
             }
 
+            // Now check layer overlap
+            checkLayerOverlap();
+
         } catch (error) {
             console.error('❌ Area analysis error:', error);
 
@@ -338,6 +342,90 @@
             if (statusEl) {
                 statusEl.textContent = `Analysis error: ${error.message}`;
                 statusEl.className = 'status error';
+            }
+        }
+    }
+
+    /**
+     * Check for EMODnet layer overlap with selected area
+     */
+    async function checkLayerOverlap() {
+        if (!selectedArea) {
+            console.error('No area selected');
+            return;
+        }
+
+        try {
+            // Show loading state
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = 'Checking layer overlap...';
+                statusEl.className = 'status loading';
+            }
+
+            // Call backend API
+            const response = await fetch(`${window.AppConfig.API_BASE_URL}/check-layer-overlap`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    geometry: selectedArea.geometry
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Layer overlap check failed');
+            }
+
+            const data = await response.json();
+            currentLayerOverlapData = data;
+
+            // Update status
+            if (statusEl) {
+                const layersText = data.total_overlapping > 0
+                    ? ` - ${data.total_overlapping} human activities layer(s) overlap`
+                    : ' - No overlapping layers found';
+                statusEl.textContent = `Layer overlap check complete${layersText}`;
+                statusEl.className = 'status';
+            }
+
+            console.log('✅ Layer overlap check complete:', data);
+
+            // Show detailed results in console
+            if (data.overlapping_layers && data.overlapping_layers.length > 0) {
+                console.log('🌊 Overlapping EMODnet Human Activities layers:');
+                data.overlapping_layers.forEach((layer, idx) => {
+                    console.log(`  ${idx + 1}. ${layer.name} (${layer.overlap_percentage}% overlap)`);
+                });
+            }
+
+            // Update the UI to show overlap button
+            updateLayerOverlapButton(data.total_overlapping);
+
+        } catch (error) {
+            console.error('❌ Layer overlap check error:', error);
+
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = `Layer overlap error: ${error.message}`;
+                statusEl.className = 'status error';
+            }
+        }
+    }
+
+    /**
+     * Update layer overlap button visibility
+     */
+    function updateLayerOverlapButton(count) {
+        const btn = document.getElementById('show-layer-overlap-btn');
+        if (btn) {
+            if (count > 0) {
+                btn.style.display = 'inline-block';
+                btn.textContent = `📊 View ${count} Overlapping Layer(s)`;
+            } else {
+                btn.style.display = 'none';
             }
         }
     }
@@ -380,6 +468,27 @@
             modalHTML += '</div>';
         }
 
+        // Layer overlap results
+        if (currentLayerOverlapData && currentLayerOverlapData.overlapping_layers) {
+            modalHTML += '<div class="analysis-section">';
+            modalHTML += '<h4>EMODnet Human Activities Layer Overlap</h4>';
+
+            if (currentLayerOverlapData.overlapping_layers.length > 0) {
+                modalHTML += `<p>Found ${currentLayerOverlapData.total_overlapping} overlapping layers (out of ${currentLayerOverlapData.total_checked} total):</p>`;
+                modalHTML += '<ul>';
+                currentLayerOverlapData.overlapping_layers.slice(0, 10).forEach(layer => {
+                    modalHTML += `<li><strong>${layer.name}</strong>: ${layer.overlap_percentage}% overlap</li>`;
+                });
+                if (currentLayerOverlapData.overlapping_layers.length > 10) {
+                    modalHTML += `<li><em>...and ${currentLayerOverlapData.overlapping_layers.length - 10} more</em></li>`;
+                }
+                modalHTML += '</ul>';
+            } else {
+                modalHTML += '<p><em>No overlapping human activities layers detected</em></p>';
+            }
+            modalHTML += '</div>';
+        }
+
         // Analysis timestamp
         modalHTML += '<div class="analysis-section">';
         modalHTML += `<p class="timestamp"><small>Analysis performed: ${new Date(currentAnalysisData.timestamp).toLocaleString()}</small></p>`;
@@ -389,6 +498,48 @@
 
         // Show in alert for now (could be enhanced with proper modal)
         alert(modalHTML.replace(/<[^>]*>/g, '\n'));
+    }
+
+    /**
+     * Show layer overlap results in detail
+     */
+    function showLayerOverlapResults() {
+        if (!currentLayerOverlapData) {
+            alert('No layer overlap data available. Please draw an area first.');
+            return;
+        }
+
+        // Create detailed results text
+        let results = '🌊 EMODnet Human Activities Layer Overlap Results\n';
+        results += '=' . repeat(50) + '\n\n';
+
+        results += `Total Layers Checked: ${currentLayerOverlapData.total_checked}\n`;
+        results += `Overlapping Layers: ${currentLayerOverlapData.total_overlapping}\n\n`;
+
+        if (currentLayerOverlapData.overlapping_layers.length > 0) {
+            results += 'Overlapping Layers (sorted by coverage):\n\n';
+
+            currentLayerOverlapData.overlapping_layers.forEach((layer, idx) => {
+                results += `${idx + 1}. ${layer.name}\n`;
+                results += `   Overlap: ${layer.overlap_percentage}%\n`;
+                if (layer.description) {
+                    const shortDesc = layer.description.substring(0, 100);
+                    results += `   Description: ${shortDesc}${layer.description.length > 100 ? '...' : ''}\n`;
+                }
+                results += '\n';
+            });
+        } else {
+            results += '\nNo overlapping layers found in the selected area.\n';
+        }
+
+        results += '\n' + '='.repeat(50);
+        results += `\nAnalysis Time: ${new Date(currentLayerOverlapData.timestamp).toLocaleString()}`;
+
+        // Show results
+        alert(results);
+
+        // Also log to console for detailed information
+        console.log('📊 Detailed Layer Overlap Results:', currentLayerOverlapData);
     }
 
     /**
@@ -474,8 +625,12 @@
 
         selectedArea = null;
         currentAnalysisData = null;
+        currentLayerOverlapData = null;
 
         hideAreaInfo();
+
+        // Hide layer overlap button
+        updateLayerOverlapButton(0);
 
         const statusEl = document.getElementById('status');
         if (statusEl) {
@@ -507,11 +662,14 @@
         disableDrawing,
         toggleDrawing,
         analyzeArea,
+        checkLayerOverlap,
         showAnalysisResults,
+        showLayerOverlapResults,
         exportArea,
         clearSelection,
         getSelectedArea,
         getAnalysisData,
+        getLayerOverlapData: () => currentLayerOverlapData,
         isEnabled: () => isDrawingEnabled
     };
 
