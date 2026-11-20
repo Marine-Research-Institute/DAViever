@@ -143,14 +143,10 @@ function zoomToResearchSite(siteKey) {
     ResearchSites.zoomToResearchSite(siteKey);
 }
 
-// Initialize when DOM is ready (optimized for DRY principle)
-function initializeResearchSites() {
-    ResearchSites?.initialize?.();
-}
-
-document.readyState === 'loading'
-    ? document.addEventListener('DOMContentLoaded', initializeResearchSites)
-    : initializeResearchSites();
+// Expose like the other modules (MapInit, UIHandlers, BBTTool): a top-level
+// const is not a window property, so app.js's window.ResearchSites check
+// missed it. app.js initializes it in order (step 5) - no self-init here.
+window.ResearchSites = ResearchSites;
 
 // Placeholder functions for zoom mode (to be implemented if needed)
 function setDAZoomMode(mode) {
