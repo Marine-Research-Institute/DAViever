@@ -224,7 +224,9 @@ def parse_wms_capabilities(xml_content, filter_fn=None):
                             else layer_name
                         ),
                         "description": (
-                            abstract_elem.text if abstract_elem is not None else ""
+                            abstract_elem.text
+                            if abstract_elem is not None and abstract_elem.text
+                            else ""
                         ),
                     }
 
@@ -391,7 +393,9 @@ def parse_wfs_capabilities(xml_content):
                             else feature_name
                         ),
                         "description": (
-                            abstract_elem.text if abstract_elem is not None else ""
+                            abstract_elem.text
+                            if abstract_elem is not None and abstract_elem.text
+                            else ""
                         ),
                     }
 
