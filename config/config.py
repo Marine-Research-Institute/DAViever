@@ -137,36 +137,59 @@ def get_config() -> Config:
     return config_map.get(env, DevelopmentConfig)()
 
 
+# Flask-Caching resolves CACHE_TYPE by backend class name. The short aliases
+# ('simple', 'redis', ...) worked in 2.3.1 but are rejected by 2.5.1, so the
+# app keeps short names in its own config and translates them at the boundary.
+_FLASK_CACHING_BACKENDS = {
+    'simple': 'SimpleCache',
+    'filesystem': 'FileSystemCache',
+    'redis': 'RedisCache',
+    'memcached': 'MemcachedCache',
+    'null': 'NullCache',
+}
+
+
+def flask_caching_type(cache_type: str) -> str:
+    """Map a short CACHE_TYPE name to the Flask-Caching backend class name.
+
+    Unknown values (e.g. an already-qualified 'SimpleCache') pass through unchanged.
+    """
+    return _FLASK_CACHING_BACKENDS.get(cache_type.lower(), cache_type)
+
+
 # Predefined EMODnet layers configuration
+# Layer names must exist on the live WMS - EMODnet retires names between
+# EUSeaMap releases (the 2021 names were gone by Nov 2026). Verified against
+# GetCapabilities 2026-11-20; tests/unit/test_config.py checks each one renders.
+# Prefer the version-less eusm_*_group layers: they always point at the
+# current EUSeaMap release and render at all zooms. The year-stamped *_full
+# layers have MaxScaleDenominator=500000 and are blank at site-overview zooms.
+# Seabed substrate omitted: EMODnet's substrate group layers (eusm_subs_group,
+# eusm2023_subs_group) are listed but fail GetMap with LayerNotDefined as of
+# 2026-11-20. Re-add eusm_subs_group once it renders.
 EMODNET_LAYERS = [
     {
-        "name": "all_eusm2021",
-        "title": "EUSeaMap 2021 - All Habitats",
-        "description": "Broad-scale seabed habitat map for Europe",
+        "name": "eusm_eunis2019_group",
+        "title": "EUSeaMap - Habitats (EUNIS 2019)",
+        "description": "Broad-scale predictive seabed habitat map for Europe (current EUSeaMap release), EUNIS 2019 classification",
         "category": "habitat_maps"
     },
     {
-        "name": "be_eusm2021",
-        "title": "EUSeaMap 2021 - Benthic Habitats",
-        "description": "Benthic broad-scale habitat map",
+        "name": "eusm_msfd_group",
+        "title": "EUSeaMap - MSFD Broad Habitat Types",
+        "description": "Broad-scale predictive seabed habitat map for Europe (current EUSeaMap release), MSFD benthic broad habitat types",
         "category": "habitat_maps"
     },
     {
-        "name": "ospar_threatened",
-        "title": "OSPAR Threatened Habitats",
-        "description": "OSPAR threatened and/or declining habitats",
+        "name": "ospar_2025_group",
+        "title": "OSPAR Threatened Habitats (2025)",
+        "description": "OSPAR threatened and/or declining habitats, NE Atlantic point and polygon records",
         "category": "conservation"
     },
     {
-        "name": "substrate",
-        "title": "Seabed Substrate",
-        "description": "Seabed substrate types",
-        "category": "physical"
-    },
-    {
-        "name": "confidence",
-        "title": "Confidence Assessment",
-        "description": "Confidence in habitat predictions",
+        "name": "eusm2025_msfd_bbht_and_eunis2019_conf",
+        "title": "EUSeaMap 2025 - Classification Confidence",
+        "description": "Confidence in the MSFD broad habitat type and EUNIS 2019 habitat classification",
         "category": "quality"
     },
     {

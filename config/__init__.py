@@ -11,6 +11,7 @@ from .config import (
     ProductionConfig,
     TestingConfig,
     get_config,
+    flask_caching_type,
     EMODNET_LAYERS,
     BASEMAP_CONFIGS
 )
@@ -21,6 +22,7 @@ __all__ = [
     'ProductionConfig',
     'TestingConfig',
     'get_config',
+    'flask_caching_type',
     'EMODNET_LAYERS',
     'BASEMAP_CONFIGS'
 ]

@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "config"))
 
 # Local imports
-from config import get_config, EMODNET_LAYERS
+from config import get_config, flask_caching_type, EMODNET_LAYERS
 from emodnet_viewer.utils.logging_config import setup_logging, get_logger
 from emodnet_viewer.utils.geometry_utils import (
     validate_geojson_geometry,
@@ -60,7 +60,7 @@ logger = get_logger(__name__)
 
 # Initialize Flask-Caching with comprehensive configuration
 cache_config = {
-    'CACHE_TYPE': config.CACHE_TYPE,
+    'CACHE_TYPE': flask_caching_type(config.CACHE_TYPE),
     'CACHE_DEFAULT_TIMEOUT': config.CACHE_DEFAULT_TIMEOUT,
 }
 
@@ -712,7 +712,7 @@ def test_page():
     <body>
         <h1>EMODnet WMS Test</h1>
         <p>Testing direct WMS GetMap request:</p>
-        <img src="https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms?service=WMS&version=1.1.0&request=GetMap&layers=all_eusm2021&bbox=-180,-90,180,90&width=768&height=384&srs=EPSG:4326&format=image/png"
+        <img src="https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wms?service=WMS&version=1.1.0&request=GetMap&layers=eusm_eunis2019_group&bbox=-180,-90,180,90&width=768&height=384&srs=EPSG:4326&format=image/png"
              alt="WMS Test Image" style="max-width: 100%; border: 1px solid black;">
         <p>If you see a map image above, the WMS service is working correctly.</p>
     </body>

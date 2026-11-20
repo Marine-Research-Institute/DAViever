@@ -142,11 +142,39 @@ class TestEmodnetLayers:
         """Test that expected layers exist"""
         layer_names = [layer['name'] for layer in EMODNET_LAYERS]
         expected_layers = [
-            'all_eusm2021', 'be_eusm2021', 'ospar_threatened',
-            'substrate', 'confidence', 'annexiMaps_all'
+            'eusm_eunis2019_group', 'eusm_msfd_group', 'ospar_2025_group',
+            'eusm2025_msfd_bbht_and_eunis2019_conf', 'annexiMaps_all'
         ]
         for expected in expected_layers:
             assert expected in layer_names
+
+    @pytest.mark.network
+    @pytest.mark.wms
+    @pytest.mark.parametrize("layer", EMODNET_LAYERS, ids=lambda l: l['name'])
+    def test_predefined_layer_renders_on_emodnet(self, layer):
+        """Each hard-coded layer must still render on the live EMODnet WMS.
+
+        Two silent failure modes, both seen 2026-11:
+        - renamed/retired layer: HTTP 200 + XML ServiceException instead of a PNG
+        - scale-limited layer (e.g. *_full, MaxScaleDenominator=500000): a valid
+          but fully transparent PNG at overview zooms
+        So check the content type AND that the Europe-wide view has drawn pixels.
+        """
+        import io
+        import requests
+        Image = pytest.importorskip('PIL.Image')
+        params = {
+            'service': 'WMS', 'request': 'GetMap', 'version': '1.1.0',
+            'layers': layer['name'], 'styles': '', 'format': 'image/png',
+            'transparent': 'true', 'width': 256, 'height': 256, 'srs': 'EPSG:3857',
+            # Whole of Europe incl. NE Atlantic, Med, Baltic (~zoom 3)
+            'bbox': '-2500000,4000000,4500000,11000000',
+        }
+        r = requests.get(Config.WMS_BASE_URL, params=params, timeout=30)
+        assert r.headers.get('Content-Type', '').startswith('image/'), r.text[:300]
+        alpha = Image.open(io.BytesIO(r.content)).convert('RGBA').getchannel('A').histogram()
+        filled = 1 - alpha[0] / sum(alpha)
+        assert filled > 0.01, f"{layer['name']} renders blank at Europe scale ({filled:.1%} filled)"
 
 
 class TestBasemapConfigs:
@@ -175,3 +203,28 @@ class TestBasemapConfigs:
             # Most tile services should use HTTPS
             if 'openstreetmap.org' not in basemap['url']:
                 assert basemap['url'].startswith('https://'), f"Basemap {basemap_key} should use HTTPS"
+
+class TestFlaskCachingType:
+    """Short CACHE_TYPE names must map to class names Flask-Caching >=2.5 accepts"""
+
+    @pytest.mark.parametrize("short, expected", [
+        ('simple', 'SimpleCache'),
+        ('SIMPLE', 'SimpleCache'),
+        ('filesystem', 'FileSystemCache'),
+        ('redis', 'RedisCache'),
+        ('null', 'NullCache'),
+        ('SimpleCache', 'SimpleCache'),  # already a class name: pass through
+    ])
+    def test_translation(self, short, expected):
+        from config import flask_caching_type
+        assert flask_caching_type(short) == expected
+
+    @pytest.mark.parametrize("short", ['simple', 'filesystem', 'null'])
+    def test_backend_actually_loads(self, short, tmp_path):
+        """The translated name must be importable by the installed Flask-Caching"""
+        from flask import Flask
+        from flask_caching import Cache
+        from config import flask_caching_type
+        app = Flask(__name__)
+        Cache(app, config={'CACHE_TYPE': flask_caching_type(short),
+                           'CACHE_DIR': str(tmp_path)})
