@@ -12,8 +12,17 @@ project_root = os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, 'config'))
 
-from app import app as flask_app
+from app import app as flask_app, cache
 from config import TestingConfig
+
+
+@pytest.fixture(autouse=True)
+def clear_layer_cache():
+    """Layer fetchers are @cache.cached - reset between tests so one test's
+    (possibly live or mocked) result is never served to the next."""
+    cache.clear()
+    yield
+    cache.clear()
 
 
 @pytest.fixture

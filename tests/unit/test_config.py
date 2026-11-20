@@ -36,6 +36,7 @@ class TestConfigClasses:
         assert hasattr(config, 'WMS_DEBUG_REQUESTS')
         assert config.WMS_DEBUG_REQUESTS is True
 
+    @patch.dict(os.environ, {'SECRET_KEY': 'test-secret'})
     def test_production_config(self):
         """Test production configuration"""
         config = ProductionConfig()
@@ -57,25 +58,42 @@ class TestConfigClasses:
         assert config.WMS_TIMEOUT == 5
         assert 'mock-wms' in config.WMS_BASE_URL
 
-    @patch.dict(os.environ, {'WMS_BASE_URL': 'http://test-wms-server.com'})
+    # Config reads env vars into class attributes at import time, so patching
+    # os.environ and instantiating Config() in-process can never see them.
+    # Import config in a fresh interpreter instead - which is exactly how the
+    # systemd/gunicorn service picks them up at startup.
+
     def test_environment_variable_override(self):
         """Test that environment variables override defaults"""
-        config = Config()
-        assert config.WMS_BASE_URL == 'http://test-wms-server.com'
+        assert _config_attr_in_fresh_process(
+            {'WMS_BASE_URL': 'http://test-wms-server.com'}, 'WMS_BASE_URL'
+        ) == 'http://test-wms-server.com'
 
-    @patch.dict(os.environ, {'WMS_TIMEOUT': '15', 'MAX_LAYERS_DISPLAY': '30'})
     def test_integer_environment_variables(self):
         """Test integer environment variable parsing"""
-        config = Config()
-        assert config.WMS_TIMEOUT == 15
-        assert config.MAX_LAYERS_DISPLAY == 30
+        env = {'WMS_TIMEOUT': '15', 'MAX_LAYERS_DISPLAY': '30'}
+        assert _config_attr_in_fresh_process(env, 'WMS_TIMEOUT') == 15
+        assert _config_attr_in_fresh_process(env, 'MAX_LAYERS_DISPLAY') == 30
 
-    @patch.dict(os.environ, {'DEFAULT_MAP_CENTER_LAT': '60.5', 'DEFAULT_MAP_CENTER_LNG': '15.2'})
     def test_float_environment_variables(self):
         """Test float environment variable parsing"""
-        config = Config()
-        assert config.DEFAULT_MAP_CENTER_LAT == 60.5
-        assert config.DEFAULT_MAP_CENTER_LNG == 15.2
+        env = {'DEFAULT_MAP_CENTER_LAT': '60.5', 'DEFAULT_MAP_CENTER_LNG': '15.2'}
+        assert _config_attr_in_fresh_process(env, 'DEFAULT_MAP_CENTER_LAT') == 60.5
+        assert _config_attr_in_fresh_process(env, 'DEFAULT_MAP_CENTER_LNG') == 15.2
+
+
+def _config_attr_in_fresh_process(env, attr):
+    """Return Config().<attr> as seen by a new Python process with `env` set."""
+    import ast
+    import subprocess
+    import sys
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    code = f"from config import Config; print(repr(Config().{attr}))"
+    out = subprocess.run(
+        [sys.executable, '-c', code], cwd=root, env={**os.environ, **env},
+        capture_output=True, text=True, check=True, timeout=30,
+    )
+    return ast.literal_eval(out.stdout.strip())
 
 
 class TestGetConfig:
@@ -88,7 +106,14 @@ class TestGetConfig:
         assert isinstance(config, DevelopmentConfig)
         assert config.DEBUG is True
 
-    @patch.dict(os.environ, {'FLASK_ENV': 'production'})
+    def test_production_requires_secret_key(self):
+        """Production must refuse to start with an auto-generated SECRET_KEY"""
+        env = {k: v for k, v in os.environ.items() if k != 'SECRET_KEY'}
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValueError, match='SECRET_KEY'):
+                ProductionConfig()
+
+    @patch.dict(os.environ, {'FLASK_ENV': 'production', 'SECRET_KEY': 'test-secret'})
     def test_get_production_config(self):
         """Test getting production configuration"""
         config = get_config()
@@ -170,7 +195,12 @@ class TestEmodnetLayers:
             # Whole of Europe incl. NE Atlantic, Med, Baltic (~zoom 3)
             'bbox': '-2500000,4000000,4500000,11000000',
         }
-        r = requests.get(Config.WMS_BASE_URL, params=params, timeout=30)
+        try:
+            # Europe-scale group layers take 10-20 s to render on EMODnet
+            r = requests.get(Config.WMS_BASE_URL, params=params, timeout=60)
+        except (requests.Timeout, requests.ConnectionError) as e:
+            # Slowness/outage says nothing about a renamed or blank layer
+            pytest.skip(f"EMODnet WMS unreachable or too slow: {e}")
         assert r.headers.get('Content-Type', '').startswith('image/'), r.text[:300]
         alpha = Image.open(io.BytesIO(r.content)).convert('RGBA').getchannel('A').histogram()
         filled = 1 - alpha[0] / sum(alpha)

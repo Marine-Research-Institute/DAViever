@@ -1,5 +1,5 @@
 """
-Automated API endpoint tests for MARBEFES BBT Database
+Automated API endpoint tests for the MarineSABRES DA Tool
 
 Tests all API endpoints to ensure proper functionality, security, and performance.
 
@@ -29,7 +29,7 @@ class TestMainEndpoints:
         """Test that the main page loads successfully"""
         response = client.get('/')
         assert response.status_code == 200
-        assert b'MARBEFES BBT Database' in response.data
+        assert b'MarineSABRES DA Tool' in response.data
 
     def test_health_check_endpoint(self, client):
         """Test health check endpoint returns proper status"""
@@ -43,8 +43,8 @@ class TestMainEndpoints:
         assert 'components' in data
 
         # Check component structure
-        assert 'vector_support' in data['components']
         assert 'wms_service' in data['components']
+        assert 'human_activities_wms_service' in data['components']
         assert 'cache' in data['components']
 
     def test_logo_endpoint(self, client):
@@ -77,13 +77,9 @@ class TestAPIEndpoints:
         assert response.status_code == 200
 
         data = json.loads(response.data)
-        assert 'wms_layers' in data
-        assert 'helcom_layers' in data
-        assert 'vector_layers' in data
-        assert 'vector_support' in data
-
-        assert isinstance(data['wms_layers'], list)
-        assert isinstance(data['vector_layers'], list)
+        for key in ('wms_layers', 'human_activities_layers', 'finfish_wfs_layers'):
+            assert key in data
+            assert isinstance(data[key], list)
 
     def test_api_capabilities_endpoint(self, client):
         """Test WMS capabilities proxy endpoint"""
@@ -96,42 +92,20 @@ class TestAPIEndpoints:
 
     def test_api_legend_endpoint(self, client):
         """Test legend URL generation endpoint"""
-        response = client.get('/api/legend/all_eusm2021')
+        response = client.get('/api/legend/eusm_eunis2019_group')
         assert response.status_code == 200
 
         data = json.loads(response.data)
         assert 'legend_url' in data
-        assert 'all_eusm2021' in data['legend_url']
+        assert 'eusm_eunis2019_group' in data['legend_url']
 
 
-class TestVectorEndpoints:
-    """Test vector layer endpoints"""
+class TestRemovedVectorEndpoints:
+    """Vector/BBT support was removed in v1.3.0 (WMS-only); its routes must stay gone"""
 
-    def test_api_vector_layers_endpoint(self, client):
-        """Test vector layers list endpoint"""
-        response = client.get('/api/vector/layers')
-
-        # Should return 200 if vector support enabled, 503 if disabled
-        assert response.status_code in [200, 503]
-
-        if response.status_code == 200:
-            data = json.loads(response.data)
-            assert 'layers' in data
-            assert 'count' in data
-            assert isinstance(data['layers'], list)
-
-    def test_api_vector_bounds_endpoint(self, client):
-        """Test vector bounds endpoint"""
-        response = client.get('/api/vector/bounds')
-
-        # Should return 200 if vector support enabled, 503 if disabled
-        assert response.status_code in [200, 503]
-
-        if response.status_code == 200:
-            data = json.loads(response.data)
-            # May be empty if no vector data loaded
-            if data:
-                assert 'overall_bounds' in data or 'layer_count' in data
+    @pytest.mark.parametrize("path", ['/api/vector/layers', '/api/vector/bounds'])
+    def test_vector_endpoints_removed(self, client, path):
+        assert client.get(path).status_code == 404
 
 
 class TestFactsheetEndpoints:
@@ -184,13 +158,12 @@ class TestSecurity:
 
     def test_rate_limiting_headers(self, client):
         """Test that rate limiting is configured"""
-        # Make multiple requests to vector endpoint
+        # A handful of requests to a rate-limited (default limits) local
+        # endpoint must not trip the limiter
         for _ in range(5):
-            response = client.get('/api/vector/layers')
+            response = client.get('/api/research-sites')
 
-        # Rate limiting headers may or may not be present depending on config
-        # Just verify the endpoint still works
-        assert response.status_code in [200, 429, 503]
+        assert response.status_code == 200
 
 
 class TestErrorHandling:

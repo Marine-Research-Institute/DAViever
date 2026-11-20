@@ -27,7 +27,7 @@ class TestAPIEndpoints:
             assert 'title' in layer
             assert 'description' in layer
 
-    @patch('app.requests.get')
+    @patch('app.wms_session.get')
     def test_layers_api_with_mock_wms(self, mock_get, client, mock_successful_wms_response):
         """Test /api/layers endpoint with mocked WMS response"""
         mock_get.return_value = mock_successful_wms_response
@@ -43,7 +43,7 @@ class TestAPIEndpoints:
 
     def test_capabilities_api_endpoint(self, client):
         """Test /api/capabilities endpoint"""
-        with patch('app.requests.get') as mock_get:
+        with patch('app.wms_session.get') as mock_get:
             mock_response = mock_get.return_value
             mock_response.content = b'<WMS_Capabilities>Mock XML</WMS_Capabilities>'
             mock_response.status_code = 200
@@ -51,12 +51,12 @@ class TestAPIEndpoints:
             response = client.get('/api/capabilities')
 
             assert response.status_code == 200
-            assert response.content_type == 'text/xml; charset=utf-8'
+            assert response.content_type.startswith('text/xml')
             assert b'WMS_Capabilities' in response.data
 
     def test_capabilities_api_error_handling(self, client):
         """Test /api/capabilities endpoint error handling"""
-        with patch('app.requests.get') as mock_get:
+        with patch('app.wms_session.get') as mock_get:
             mock_get.side_effect = Exception("Connection error")
 
             response = client.get('/api/capabilities')
@@ -132,7 +132,7 @@ class TestAPIEndpoints:
 class TestAPIErrorHandling:
     """Test API error handling scenarios"""
 
-    @patch('app.requests.get')
+    @patch('app.wms_session.get')
     def test_layers_api_timeout(self, mock_get, client):
         """Test /api/layers endpoint with timeout"""
         from requests.exceptions import Timeout
@@ -145,7 +145,7 @@ class TestAPIErrorHandling:
         data = json.loads(response.data)
         assert len(data) > 0  # Should return default EMODNET_LAYERS
 
-    @patch('app.requests.get')
+    @patch('app.wms_session.get')
     def test_layers_api_connection_error(self, mock_get, client):
         """Test /api/layers endpoint with connection error"""
         from requests.exceptions import ConnectionError
@@ -158,7 +158,7 @@ class TestAPIErrorHandling:
         data = json.loads(response.data)
         assert len(data) > 0
 
-    @patch('app.requests.get')
+    @patch('app.wms_session.get')
     def test_capabilities_api_timeout(self, mock_get, client):
         """Test /api/capabilities endpoint with timeout"""
         from requests.exceptions import Timeout
@@ -183,11 +183,12 @@ class TestAPIContentValidation:
 
         for layer in data:
             # Each layer must have these fields
-            required_fields = ['name', 'title', 'description']
-            for field in required_fields:
+            for field in ('name', 'title', 'description'):
                 assert field in layer, f"Layer missing field: {field}"
                 assert isinstance(layer[field], str), f"Field {field} must be string"
-                assert layer[field].strip(), f"Field {field} cannot be empty"
+            # Some EMODnet layers genuinely have no <Abstract>, so only
+            # name and title must be non-empty
+            assert layer['name'].strip() and layer['title'].strip()
 
     def test_legend_api_url_format(self, client):
         """Test that legend API returns properly formatted URLs"""
